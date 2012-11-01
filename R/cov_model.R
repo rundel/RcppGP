@@ -1,30 +1,3 @@
-nugget = list(type = "nugget", params = list( 
-                list( name = "tauSq",
-                      dist = "IG",
-                      trans = "logit",
-                      start = 1,
-                      tuning = 0.01,
-                      hyperparams = c(0.1, 0.1)
-                    )
-              ))
-
-exponential = list(type = "exponential", params = list(
-                    list( name = "sigmaSq",
-                          dist = "IG",
-                          trans = "logit",
-                          start = 1,
-                          tuning = 0.01,
-                          hyperparams = c(0.1, 0.1)
-                        ),         
-                    list( name = "phi",
-                          dist = "Unif",
-                          trans = "log",
-                          start = 1,
-                          tuning = 0.01,
-                          hyperparams = c(0.1, 0.1)
-                        )            
-                ))
-
 invalid = list()
 invalid2 = list(type = "exp")
 
