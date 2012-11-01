@@ -1,0 +1,5 @@
+valid_cov_methods  = function() .Call("valid_cov_methods",PACKAGE="tsBayes")
+valid_param_dists  = function() .Call("valid_param_dists",PACKAGE="tsBayes")
+valid_param_trans  = function() .Call("valid_param_trans",PACKAGE="tsBayes")
+valid_cov_funcs    = function() .Call("valid_cov_funcs",PACKAGE="tsBayes")
+valid_nparams      = function(f) .Call("valid_nparams",f,PACKAGE="tsBayes")

@@ -1,15 +1,10 @@
-invalid = list()
-invalid2 = list(type = "exp")
 
-covs = list(nugget, exponential, nugget)
-covs2 = list(nugget,exponential, nugget, invalid2)
-
-build_cov_model = function(..., method = "additive") 
+build_cov_model = function(..., method = "addition") 
 {
-    valid_methods = c("additive","multiplicative")
-    valid_types = c("nugget", "exponential")
-    valid_dists = c("uniform","normal","inverse gamma")
-    valid_trans = c("log","logit","identity")
+    valid_methods = valid_cov_methods()
+    valid_funcs   = valid_cov_funcs()
+    valid_dists   = valid_param_dists()
+    valid_trans   = valid_param_trans()
 
     covs = list(...)
     nmodels = length(covs)
@@ -26,16 +21,16 @@ build_cov_model = function(..., method = "additive")
         stop("unknown method: \"",method,"\"" ) 
     
     ######################################
-    # Cov model types                    #
+    # Cov model funcs                    #
     ######################################
 
-    model_types = tolower(sapply(covs, function(x) ifelse(is.null(x$type), "", x$type)))
-    storage.mode(model_types) = "character"
-    stopifnot(length(model_types) == nmodels)
+    model_funcs = tolower(sapply(covs, function(x) ifelse(is.null(x$type), "", x$type)))
+    storage.mode(model_funcs) = "character"
+    stopifnot(length(model_funcs) == nmodels)
 
-    t = charmatch(model_types,valid_types, nomatch=0)
+    t = charmatch(model_funcs,valid_funcs, nomatch=0)
     if (any(t==0)) 
-        stop("unknown cov model type(s): ",paste0('"',model_types[t==0],'"(', which(t==0),')' ,collapse=', '),".")
+        stop("unknown cov model function(s): ",paste0('"',model_funcs[t==0],'"(', which(t==0),')' ,collapse=', '),".")
 
     ######################################
     # Cov model names                   #
@@ -45,7 +40,10 @@ build_cov_model = function(..., method = "additive")
     storage.mode(model_names) = "character"
     stopifnot(length(model_names) == nmodels)
 
-    model_names[model_names == ""] = strtrim(model_types[model_names == ""],3)
+    # Missing names replaced by truncated function name
+    model_names[model_names == ""] = strtrim(model_funcs[model_names == ""],3)
+    
+    # Non-unique names have a numeric suffix added
     t = table(model_names)
     if(length(t) != length(model_names)) {
         for(n in names(t)[t!=1]) model_names[model_names == n] = paste0(n,1:t[n])
@@ -59,8 +57,9 @@ build_cov_model = function(..., method = "additive")
     storage.mode(model_nparams) = "integer"
     stopifnot(length(model_nparams) == nmodels)
 
-    if (any(model_nparams < 1)) 
-        stop("cov model(s) ", paste(model_names[model_nparams < 1],collapse=", "), " must have at least 1 parameter.")
+    s = (model_nparams != sapply(model_funcs, valid_nparams))
+    if (any(s))
+        stop("covariance model(s) ", paste(model_names[s],collapse=", "), " have the incorrect number of parameters.")
 
     ######################################
     # Model parameters                   #
@@ -125,11 +124,11 @@ build_cov_model = function(..., method = "additive")
     #######################################
 
     param_start = sapply(params, function(x) ifelse(is.null(x$start), NA, x$start))
-    storage.mode(param_start) = "character"
+    storage.mode(param_start) = "double"
     stopifnot(length(param_start) == nparams)
 
     param_tuning = sapply(params, function(x) ifelse(is.null(x$tuning), 0, x$tuning))
-    storage.mode(param_tuning) = "character"
+    storage.mode(param_tuning) = "double"
     stopifnot(length(param_tuning) == nparams)
 
     #######################################
@@ -143,18 +142,20 @@ build_cov_model = function(..., method = "additive")
     stopifnot(length(param_hyper) == nparams)
     
     return( list(
-        method = method,
-        model_types = model_types,
-        model_names = model_names,
-        model_nparams = model_nparams,
-        model_params = model_params,
-        param_names = param_names,
-        param_dists = param_dists,
-        param_trans = param_trans,
-        param_start = param_start,
-        param_tuning = param_tuning,
-        param_nhyper = param_nhyper,
-        param_hyper = param_hyper  
+        nmodels = nmodels,                  # 1x1 Integer - m
+        nparams = nparams,                  # 1x1 Integer - p
+        method = method,                    # 1x1 String
+        model_funcs = model_funcs,          # mx1 String
+        model_names = model_names,          # mx1 String
+        model_nparams = model_nparams,      # mx1 Integer
+        model_params = model_params,        # mx1 p(i)x1 Integer
+        param_names = param_names,          # px1 String
+        param_dists = param_dists,          # px1 String
+        param_trans = param_trans,          # px1 String
+        param_start = param_start,          # px1 Double
+        param_tuning = param_tuning,        # px1 Double
+        param_nhyper = param_nhyper,        # px1 Integer
+        param_hyper = param_hyper           # px1 of hp x 1 Double
     ))
 }
 

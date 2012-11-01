@@ -1,59 +1,33 @@
 #ifndef COV_MODEL_HPP
 #define COV_MODEL_HPP
 
-#include "cov_funcs.hpp"
-
-enum cov_method {add_method, prod_method};
-
-
-
+#include "cov_method.hpp"
 
 struct cov_model 
 {
-
     int nmodels;
     int nparams;
+    int method;
+    
+    std::vector<int>            model_nparams;
+    std::vector<std::string>    model_names;
+    std::vector<int>            model_funcs;
+    std::vector<arma::uvec>     model_params;
+    
+    std::vector<std::string>    param_names;        
+    arma::vec                   param_start;
+    arma::vec                   param_tuning;
+    std::vector<int>            param_nhyper;
+    std::vector<int>            param_dists;
+    std::vector<int>            param_trans;
+    std::vector<arma::vec>      param_hyper;
 
-    cov_method method;
-    std::vector<arma::ivec> model_params;
-    Rcpp::IntergerVector model_types;
-
-    cov_model(SEXP method_r, SEXP model_params, SEXP model_types)
-    {
-
-    }
-
-    cov_method method_from_string(std::string const& str) 
-    {
-        if      (str == "nugget"             ) return nugget_cov;
-        else if (str == "exponential"        ) return exp_cov;
-        else if (str == "gaussian"           ) return gauss_cov;
-        else if (str == "powered_exponential") return powexp_cov;
-        else if (str == "spherical"          ) return sphere_cov;
-        else if (str == "matern"             ) return matern_cov;
-        else if (str == "rational_quadratic" ) return rq_cov;
-        else if (str == "periodic"           ) return periodic_cov;
-        else throw std::range_error("Unknown covariance function type: " + str + ".");
-
-        return -1;
-    }
-
-    arma::mat calc_covariance(arma::mat const& d, arma::vec const& params)
-    {
-        arma::mat cov = arma::zeroes<arma::mat>(d.n_rows, d.n_cols);
-
-        for (int i=0; i != nmodels; ++i) {
-
-            arma::vec mparams = params.elem( model_params[i] );
-            
-            if (method == add_method)
-                cov += cov_func<model_types[i]>(d, mparams);
-            else if (method == prod_method)
-                cov *= cov_func<model_types[i]>(d, mparams);
-            else
-                throw std::range_error("Unknown covariance model construction method.");
-        }
-
-        return cov;
-    }
+    cov_model(SEXP covModel_r);
+    
+    arma::mat calc_cov(arma::mat const& d, arma::vec const& params);
+    template<int i> arma::mat calc_cov(arma::mat const& d, arma::vec const& params);
 };
+
+RcppExport SEXP test_calc_cov(SEXP model, SEXP dist, SEXP params);
+
+#endif

@@ -3,7 +3,7 @@
 
 #include "spPPLM.hpp"
 #include "util.hpp"
-#include "model_state.hpp"
+#include "model_state_lm.hpp"
 
 
 

@@ -1,5 +1,5 @@
-#ifndef SPPPLM_HPP
-#define SPPPLM_HPP
+#ifndef SPPLM_HPP
+#define SPPLM_HPP
 
 #include <RcppArmadillo.h>
 
