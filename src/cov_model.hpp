@@ -1,7 +1,7 @@
 #ifndef COV_MODEL_HPP
 #define COV_MODEL_HPP
 
-#include "cov_method.hpp"
+#include <RcppArmadillo.h>
 
 struct cov_model 
 {
