@@ -1,24 +1,28 @@
 #include <limits>
 
+#include "assert.hpp"
+#include "report.hpp"
 #include "spPPGLM.hpp"
 #include "distributions.hpp"
-#include "model_state_glm.hpp"
+#include "adapt_mcmc.hpp"
+#include "model_state_pp_glm.hpp"
+#include "model_state_mpp_glm.hpp"
 
 SEXP spPPGLM(SEXP Y_r, SEXP X_r,
              SEXP coordsD_r, SEXP knotsD_r, SEXP coordsKnotsD_r,
              SEXP family_r, SEXP weights_r,
-             SEXP is_mod_pp_r,
-             SEXP beta_prior_r, SEXP beta_start_r, SEXP beta_tuning_r, SEXP beta_mu_r, SEXP beta_sd_r,
-             SEXP ws_tuning_r,
-             SEXP cov_model_r,
+             SEXP beta_r, SEXP ws_r, SEXP e_r,
+             SEXP cov_model_r, SEXP is_mod_pp_r,
              SEXP n_samples_r, SEXP verbose_r, SEXP n_report_r,
              SEXP n_adapt_r, SEXP target_acc_r, SEXP gamma_r)
 {    
-BEGIN_RCPP
+//BEGIN_RCPP
+
+    Rcpp::RNGScope scope;
 
     arma::vec Y = Rcpp::as<arma::vec>(Y_r);
     arma::mat X = Rcpp::as<arma::mat>(X_r);
-    
+
     arma::mat coordsD = Rcpp::as<arma::mat>(coordsD_r);
     arma::mat knotsD = Rcpp::as<arma::mat>(knotsD_r);
     arma::mat coordsKnotsD = Rcpp::as<arma::mat>(coordsKnotsD_r);
@@ -26,37 +30,41 @@ BEGIN_RCPP
     int p = X.n_cols;       // # of betas
     int n = X.n_rows;       // # of samples
     int m = knotsD.n_rows;  // # of knots
-
-
-
   
     std::string family = Rcpp::as<std::string>(family_r);
     arma::vec weights = Rcpp::as<arma::vec>(weights_r);
 
     bool is_mod_pp = Rcpp::as<bool>(is_mod_pp_r);
 
-    std::string beta_prior = Rcpp::as<std::string>(beta_prior_r);
-    arma::vec beta_start = Rcpp::as<arma::vec>(beta_start_r);
-    arma::vec beta_tuning = Rcpp::as<arma::vec>(beta_tuning_r);
-    arma::vec beta_mu = Rcpp::as<arma::vec>(beta_mu_r);
-    arma::vec beta_sd = Rcpp::as<arma::vec>(beta_sd_r);
+    cov_model cov_settings(cov_model_r);
 
-    arma::vec ws_tuning = Rcpp::as<arma::vec>(ws_tuning_r);
+    Rcpp::List beta_settings(beta_r);
+    Rcpp::List ws_settings(ws_r);
+    Rcpp::List e_settings(e_r);
 
-    cov_model settings(cov_model_r);
+    std::string beta_prior = Rcpp::as<std::string>(beta_settings["prior"]);
+    
+    std::vector<arma::vec> beta_hyperparam;
+    if (beta_prior == "normal")
+    {
+        Rcpp::List beta_hyperparam_list = Rcpp::as<Rcpp::List>(beta_settings["hyperparam"]);
+        RT_ASSERT(beta_hyperparam_list.size() == 2, "Beta normal prior must have 2 hyper parameters (mu and sd).");
+
+        for(int i=0; i!=beta_hyperparam_list.size(); ++i)
+        {
+            beta_hyperparam.push_back( Rcpp::as<arma::vec>(beta_hyperparam_list[i]) );
+            RT_ASSERT(beta_hyperparam[i].size() == p, "Length of hyperparameter must match number of betas.");
+        }
+    }
 
     int n_samples = Rcpp::as<int>(n_samples_r);
-    int verbose  = Rcpp::as<int>(verbose_r);
     int n_report  = Rcpp::as<int>(n_report_r);
+    bool verbose  = Rcpp::as<bool>(verbose_r);
+    
 
-    int n_params = settings.nparams;
-    int n_total_p = n_params + p;
+    int n_theta = cov_settings.nparams;
+    int n_total_p = n_theta + p;
 
-
-    // Adaption Settings
-    int n_adapt = Rcpp::as<int>(n_adapt_r); //5000;
-    double target_acc = Rcpp::as<double>(target_acc_r); //0.234;
-    double gamma = Rcpp::as<double>(gamma_r); // 0.5;
 
     if(verbose){
         Rcpp::Rcout << "----------------------------------------\n";
@@ -67,7 +75,7 @@ BEGIN_RCPP
         //Rcpp::Rcout << "Using the " << covModel << " spatial correlation model.\n";
         
         std::string mod_str = (is_mod_pp) ? "modified" : "non-modified"; 
-        Rcpp::Rcout << "Using " << mod_str <<  " predictive process with %i knots.\n";
+        Rcpp::Rcout << "Using " << mod_str <<  " predictive process with " << m << " knots.\n";
         Rcpp::Rcout << "Number of MCMC samples " << n_samples << ".\n\n";
 
         Rcpp::Rcout << "Priors and hyperpriors:\n";
@@ -80,111 +88,357 @@ BEGIN_RCPP
     arma::mat w(n, n_samples);
     arma::mat w_star(m, n_samples); 
     arma::mat beta(p, n_samples);
-    arma::mat params(n_params, n_samples);
+    arma::mat theta(n_theta, n_samples);
 
 
 
-    if (verbose) {
-        Rcpp::Rcout << "-------------------------------------------------\n"
-                    << "                   Sampling                      \n"
-                    << "-------------------------------------------------\n";
-    }
+    if (verbose) report_start();
 
 
-    arma::mat M = arma::diagmat( arma::join_cols(beta_tuning, settings.param_tuning) );
-    arma::mat S = arma::chol(M).t();
+    vihola_adapt p_amcmc(beta_settings);
+    vihola_adapt ws_amcmc(ws_settings);
+    vihola_adapt e_amcmc(e_settings);
 
-    model_state_glm cur_state(&settings, beta_start);
+    double loglik_cur_theta, loglik_cur_beta, loglik_cur_link, loglik_cur_ws, loglik_cur_e;
+    double loglik_cur = -std::numeric_limits<double>::max();
+    
+    int accept    = 0, batch_accept    = 0;
+    int accept_ws = 0, batch_accept_ws = 0;
+    int accept_e  = 0, batch_accept_e  = 0;
 
-    double loglik_cur = std::numeric_limits<double>::min();
+    std::vector<double> acc_rate, acc_rate_ws, acc_rate_e;
+    Rcpp::List accept_results;
 
-    int status=0, accept=0, batch_accept = 0;
-    for(int s = 0; s < n_samples; s++){
+    if (!is_mod_pp)
+    {
+        model_state_pp_glm cur_state(&cov_settings);
 
-        model_state_glm cand_state = cur_state;
+        cur_state.theta = cov_settings.param_start;
+        cur_state.beta = Rcpp::as<arma::vec>(beta_settings["start"]);
+        cur_state.ws = Rcpp::as<arma::vec>(ws_settings["start"]);
 
-        arma::vec U = S * arma::randn<arma::mat>(p+n_params);
+        //cur_state.update_covs(knotsD, coordsKnotsD);
+        //cur_state.update_w();
 
-        arma::vec beta_jump  = U(arma::span(0,p-1));
-        arma::vec param_jump = U(arma::span(p,p+n_params-1));
+        for(int s = 0; s < n_samples; s++){
 
-        // Propose
-        cand_state.update_beta( beta_jump );
-        cand_state.update_params( param_jump );
-        cand_state.update_ws( sqrt(ws_tuning) % arma::randn<arma::vec>(m) );
-        cand_state.update_covs(knotsD, coordsKnotsD);
-        cand_state.update_w();
+            model_state_pp_glm cand_state = cur_state;
 
-        // Log Likelihood
-        double loglik_cand = 0.0;
+            /////////////////////////
+            // Update beta & theta
+            ////////////////////////
 
-        loglik_cand += cand_state.calc_param_loglik();
-        loglik_cand += cand_state.calc_mvn_loglik();
+            arma::vec U = p_amcmc.get_jump();
 
-        if (beta_prior == "normal") {
-            loglik_cand += arma::accu( -arma::log(beta_sd) - arma::pow((cand_state.beta-beta_mu)/beta_sd,2)/2 );    
-        }
+            //arma::vec U(3);
+            //U[0] = 0.0079;
+            //U[1] = 0.6275;
+            //U[2] = -0.8124;
 
-        if (family == "binomial") {
-            loglik_cand += binomial_logpost(Y, X*cand_state.beta, cand_state.w, weights);
-        } else if (family == "poisson") {
-            loglik_cand += poisson_logpost(Y, X*cand_state.beta, cand_state.w);
-        } else {
-            throw std::invalid_argument("Unknown model family: " + family + ".");
-        }
-
-        double alpha = std::min(1.0, exp(loglik_cand - loglik_cur));
-        if (Rcpp::runif(1)[0] <= alpha)
-        {
-            cur_state = cand_state;
-            loglik_cur = loglik_cand;
-            accept++;
-            batch_accept++;
-        }
-
-        if(s < n_adapt) {
-            double adapt_rate = std::min(1.0, n_total_p * pow(s,-gamma));
+            arma::vec beta_jump  = U(arma::span(0,p-1));
+            arma::vec theta_jump = U(arma::span(p,p+n_theta-1));
             
-            M = S * (arma::eye<arma::mat>(n_total_p,n_total_p) + adapt_rate*(alpha - target_acc) * U * U.t() / arma::dot(U,U)) * S.t();
-            S = arma::chol(M).t();
+            cand_state.update_beta( beta_jump );
+            cand_state.update_theta( theta_jump );
+            
+            cand_state.update_covs(knotsD, coordsKnotsD);
+            cand_state.update_w();
+
+            double loglik_cand_theta, loglik_cand_beta, loglik_cand_ws, loglik_cand_link;
+
+            loglik_cand_theta = cand_state.calc_theta_loglik();
+            loglik_cand_beta  = (beta_prior == "normal") ? cand_state.calc_beta_norm_loglik(beta_hyperparam[0],beta_hyperparam[1]) : 0.0;
+            loglik_cand_ws    = cand_state.calc_ws_loglik();
+
+            loglik_cand_link = 0.0;
+            if      (family == "binomial") loglik_cand_link = cand_state.calc_binomial_loglik(Y, X, weights);
+            else if (family == "poisson")  loglik_cand_link = cand_state.calc_poisson_loglik(Y, X);
+
+            double loglik_cand = loglik_cand_theta + loglik_cand_beta + loglik_cand_ws + loglik_cand_link;
+
+            double alpha = std::min(1.0, exp(loglik_cand - loglik_cur));
+            
+            //Rcpp::Rcout << "theta " << loglik_cand_theta << "\n"
+            //            << "beta  " << loglik_cand_beta << "\n"
+            //            << "ws    " << loglik_cand_ws << "\n"
+            //            << "link  " << loglik_cand_link << "\n\n";
+
+            if (Rcpp::runif(1)[0] <= alpha)
+            {
+                cur_state = cand_state;
+                
+                loglik_cur = loglik_cand;
+                                
+                loglik_cur_theta = loglik_cand_theta;
+                loglik_cur_beta  = loglik_cand_beta;
+                loglik_cur_ws    = loglik_cand_ws; 
+                loglik_cur_link  = loglik_cand_link;
+
+                accept++;
+                batch_accept++;
+            } else {
+                cand_state = cur_state;
+            }
+            p_amcmc.update(s, alpha);
+
+            /////////////////////////
+            // Update ws
+            ////////////////////////
+
+            arma::vec ws_jump = ws_amcmc.get_jump();
+            cand_state.update_ws( ws_jump );
+            cand_state.update_w();
+
+            loglik_cand_ws   = cand_state.calc_ws_loglik();
+            loglik_cand_link = 0.0;
+            if      (family == "binomial") loglik_cand_link = cand_state.calc_binomial_loglik(Y, X, weights);
+            else if (family == "poisson")  loglik_cand_link = cand_state.calc_poisson_loglik(Y, X);
+
+            double alpha_ws = std::min(1.0, exp(loglik_cand_ws + loglik_cand_link - loglik_cur_ws - loglik_cur_link));
+            if (Rcpp::runif(1)[0] <= alpha_ws)
+            {
+                cur_state = cand_state;
+                
+                loglik_cur += loglik_cand_ws + loglik_cand_link - loglik_cur_ws - loglik_cur_link;
+                
+                loglik_cur_ws    = loglik_cand_ws; 
+                loglik_cur_link  = loglik_cand_link;
+
+                accept_ws++;
+                batch_accept_ws++;
+            }
+            ws_amcmc.update(s, alpha_ws);
+
+
+            w_star.col(s) = cur_state.ws;
+            w.col(s) = cur_state.w;
+            beta.col(s) = cur_state.beta;
+            theta.col(s) = cur_state.theta;
+
+            if ((s+1) % n_report == 0)
+            {
+                if (verbose)
+                {
+                    report_sample(s+1, n_samples);
+                    report_accept("theta & beta", s+1, accept, batch_accept, n_report);
+                    report_accept("w_star      ", s+1, accept_ws, batch_accept_ws, n_report);
+                    report_line();
+                }
+
+                acc_rate.push_back(1.0*accept/s);
+                acc_rate_ws.push_back(1.0*accept_ws/s);
+
+                batch_accept = 0;
+                batch_accept_ws = 0;
+            }
         }
 
-        w_star.col(s) = cur_state.ws;
-        w.col(s) = cur_state.w;
-        beta.col(s) = cur_state.beta;
-        params.col(s) = cur_state.params;
+        //if (verbose)
+        //{
+        //    report_sample(n_samples, n_samples);
+        //    report_accept("theta+beta", n_samples, accept, batch_accept, n_report);
+        //    report_accept("w star", n_samples, accept_ws, batch_accept_ws, n_report);
+        //    report_line();
+        //}
+        
+        accept_results["params"] = acc_rate;
+        accept_results["w_star"] = acc_rate_ws;
+    } 
+    else
+    {
+        model_state_mpp_glm cur_state(&cov_settings);
 
-        if (verbose && status == n_report){
-            Rcpp::Rcout << "Sampled: " << s << " of " <<  n_samples << " (" << floor(1000*s/n_samples)/10 << "%)\n"
-                        << "Report interval Metrop. Acceptance rate: " << floor(1000*batch_accept/n_report)/10 << "%\n"
-                        << "Overall Metrop. Acceptance rate: " << floor(1000*accept/s)/10 << "%\n"
-                        << "-------------------------------------------------\n";
-           
-            status = 0;
-            batch_accept = 0;
+        cur_state.theta = cov_settings.param_start;
+        cur_state.beta  = Rcpp::as<arma::vec>(beta_settings["start"]);
+        cur_state.ws    = Rcpp::as<arma::vec>(ws_settings["start"]);
+        cur_state.e     = Rcpp::as<arma::vec>(e_settings["start"]);
+        
+        for(int s = 0; s < n_samples; s++)
+        {            
+            model_state_mpp_glm cand_state = cur_state;
 
-            Rcpp::Rcout << "\n" << M
-                        << "\n-------------------------------------------------\n";
-        }
+            /////////////////////////
+            // Update beta & theta
+            ////////////////////////
 
-        status++;
-    }
+            arma::vec U = p_amcmc.get_jump();
+            arma::vec beta_jump = U(arma::span(0, p-1));
+            arma::vec theta_jump = U(arma::span(p, p+n_theta-1));
+
+            cand_state.update_beta( beta_jump );
+            cand_state.update_theta( theta_jump );
+            
+            cand_state.update_covs(knotsD, coordsKnotsD);
+            cand_state.update_w();
+            cand_state.update_e_var();
+
+            // Log Likelihood
+            double loglik_cand_theta, loglik_cand_beta, loglik_cand_ws, loglik_cand_link, loglik_cand_e;
+
+            loglik_cand_theta = cand_state.calc_theta_loglik();
+            loglik_cand_beta = (beta_prior == "normal") ? cand_state.calc_beta_norm_loglik(beta_hyperparam[0], beta_hyperparam[1]) : 0.0;    
+
+            loglik_cand_link = 0;
+            if      (family == "binomial") loglik_cand_link = cand_state.calc_binomial_loglik(Y, X, weights);
+            else if (family == "poisson")  loglik_cand_link = cand_state.calc_poisson_loglik(Y, X);
+    
+            loglik_cand_ws = cand_state.calc_ws_loglik();
+            loglik_cand_e  = cand_state.calc_e_loglik();
+
+            double loglik_cand = loglik_cand_theta + loglik_cand_beta + loglik_cand_link + loglik_cand_ws + loglik_cand_e;
+            
+            //Rcpp::Rcout << "ll  = " << loglik_cand_theta
+            //            << ", " << loglik_cand_beta 
+            //            << ", " << loglik_cand_ws
+            //            << ", " << loglik_cand_link 
+            //            << ", " << loglik_cand_e
+            //            << " = " << loglik_cand 
+            //            << " (" << loglik_cur << ")"
+            //            << "\n";
+
+            double alpha = std::min(1.0, exp(loglik_cand - loglik_cur));
+            if (Rcpp::runif(1)[0] <= alpha)
+            {
+                cur_state = cand_state;
+                
+                loglik_cur = loglik_cand;
+                loglik_cur_theta = loglik_cand_theta;
+                loglik_cur_beta = loglik_cand_beta;
+                loglik_cur_link = loglik_cand_link;
+                loglik_cur_ws = loglik_cand_ws;
+                loglik_cur_e  = loglik_cand_e;
+
+                accept++;
+                batch_accept++;
+            } else {
+                cand_state = cur_state;
+            }
+            p_amcmc.update(s, alpha);
+
+            ////////////////////
+            // Update w*
+            ////////////////////
+
+            cand_state.update_ws( ws_amcmc.get_jump() );
+            cand_state.update_w();
+
+            loglik_cand_ws = cand_state.calc_ws_loglik();
+            loglik_cand_link = 0;
+            if      (family == "binomial") loglik_cand_link = cand_state.calc_binomial_loglik(Y, X, weights);
+            else if (family == "poisson")  loglik_cand_link = cand_state.calc_poisson_loglik(Y, X);
+            
+
+            //Rcpp::Rcout << "ll2 = " << loglik_cand_ws
+            //            << ", " << loglik_cand_link 
+            //            << " (" << loglik_cur_ws + loglik_cur_link << ")"
+            //            << "\n";
+
+            double alpha_ws = std::min(1.0, exp(loglik_cand_ws + loglik_cand_link - loglik_cur_ws - loglik_cur_link));
+            if (Rcpp::runif(1)[0] <= alpha_ws)
+            {
+                cur_state = cand_state;
+                
+                loglik_cur += loglik_cand_ws + loglik_cand_link - loglik_cur_ws - loglik_cur_link;
+                loglik_cur_link = loglik_cand_link;
+                loglik_cur_ws = loglik_cand_ws;
+                
+                accept_ws++;
+                batch_accept_ws++;
+            } else {
+                cand_state = cur_state;
+            }
+            ws_amcmc.update(s, alpha_ws);
+            
+
+            ////////////////////
+            // Update e
+            ////////////////////
+
+            
+            cand_state.update_e( e_amcmc.get_jump() );
+            cand_state.update_w();
+
+            loglik_cand_e = cand_state.calc_e_loglik();
+            loglik_cand_link = 0;
+            if      (family == "binomial") loglik_cand_link = cand_state.calc_binomial_loglik(Y, X, weights);
+            else if (family == "poisson")  loglik_cand_link = cand_state.calc_poisson_loglik(Y, X);
   
-    if (verbose){
-        Rcpp::Rcout << "Sampled: " << n_samples << " of " <<  n_samples << " (100%)\n"
-                    << "Report interval Metrop. Acceptance rate: " << floor(1000*batch_accept/n_report)/10 << "%\n"
-                    << "Overall Metrop. Acceptance rate: " << floor(1000*accept/n_samples)/10 << "%\n"
-                    << "-------------------------------------------------\n";
+            double alpha_e = std::min(1.0, exp(loglik_cand_e + loglik_cand_link - loglik_cur_e - loglik_cur_link));
+            
+            /*Rcpp::Rcout << "can: " << loglik_cand_e
+                        << " + " << loglik_cand_link 
+                        << " = " << loglik_cand_e + loglik_cand_link << "\n"
+                        << "cur: " << loglik_cur_e
+                        << " + " << loglik_cur_link 
+                        << " = " << loglik_cur_e + loglik_cur_link << "\n"
+                        << alpha_e 
+                        << ", " << arma::accu(e_amcmc.get_S())
+                        << "\n\n";*/
+
+            if (Rcpp::runif(1)[0] <= alpha_e)
+            {
+                cur_state = cand_state;
+                
+                loglik_cur += loglik_cand_e + loglik_cand_link - loglik_cur_e - loglik_cur_link;
+                loglik_cur_link = loglik_cand_link;
+                loglik_cur_ws = loglik_cand_ws;
+                
+                accept_e++;
+                batch_accept_e++;
+            }
+            e_amcmc.update(s, alpha_e);
+
+            w_star.col(s) = cur_state.ws;
+            w.col(s) = cur_state.w;
+            beta.col(s) = cur_state.beta;
+            theta.col(s) = cur_state.theta;
+
+            if ((s+1) % n_report == 0)
+            {
+                if (verbose)
+                {
+                    report_sample(s+1, n_samples);
+                    report_accept("theta & beta", s+1, accept,    batch_accept,    n_report);
+                    report_accept("w star      ", s+1, accept_ws, batch_accept_ws, n_report);
+                    report_accept("e           ", s+1, accept_e,  batch_accept_e,  n_report);
+                    report_line();
+                }
+
+                acc_rate.push_back(1.0*accept/s);
+                acc_rate_ws.push_back(1.0*accept_ws/s);
+                acc_rate_e.push_back(1.0*accept_e/s);
+
+                batch_accept    = 0;
+                batch_accept_ws = 0;
+                batch_accept_e  = 0;
+            }
+
+        }
+
+        //if (verbose)
+        //{
+        //    report_sample(n_samples, n_samples);
+        //    report_accept("theta+beta", n_samples, accept, batch_accept, n_report);
+        //    report_accept("w star", n_samples, accept_ws, batch_accept_ws, n_report);
+        //    report_accept("e", n_samples, accept_e, batch_accept_e, n_report);
+        //    report_line();
+        //}
+
+        accept_results["params"] = acc_rate;
+        accept_results["w_star"] = acc_rate_ws;
+        accept_results["e"] = acc_rate_e;
     }
 
-    return Rcpp::List::create(//Rcpp::Named("p.samples") = params,
-                              Rcpp::Named("beta") = beta,
-                              Rcpp::Named("params") = params,
-                              Rcpp::Named("acceptance") = 100.0*accept/n_samples,
-                              Rcpp::Named("sp.effects") = w,
-                              Rcpp::Named("sp.effects.knots") = w_star,
-                              Rcpp::Named("cov.jump") = M);
 
-END_RCPP
+    
+
+    return Rcpp::List::create(Rcpp::Named("beta") = beta,
+                              Rcpp::Named("theta") = theta,
+                              Rcpp::Named("accept") = accept_results,
+                              Rcpp::Named("w") = w,
+                              Rcpp::Named("w_star") = w_star
+                              );
+
+//END_RCPP
 }
 
