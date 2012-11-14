@@ -1,5 +1,5 @@
 
-build_cov_model = function(..., method = "addition") 
+cov_model = function(..., method = "addition") 
 {
     valid_methods = valid_cov_methods()
     valid_funcs   = valid_cov_funcs()
@@ -159,5 +159,5 @@ build_cov_model = function(..., method = "addition")
     ))
 }
 
-#build_cov_model(nugget, exponential, invalid, invalid2, method = "additive")
-#build_cov_model(nugget, exponential, method = "additive")
+#cov_model(nugget, exponential, invalid, invalid2, method = "additive")
+#cov_model(nugget, exponential, method = "additive")
