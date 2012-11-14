@@ -1,5 +1,5 @@
 spLM2 = function(formula, data = parent.frame(), coords, knots,
-                 starting, sp.tuning, priors, cov.model, 
+                 starting, sp.tuning, priors, cov_model, 
                  modified.pp = TRUE, n.samples, sub.samples, verbose=TRUE, n.report=100, ...)
 {
 
@@ -52,14 +52,14 @@ spLM2 = function(formula, data = parent.frame(), coords, knots,
           data used in the model formula")
   }
   
-  coords.D = as.matrix(dist(coords))
-  storage.mode(coords.D) = "double"
+  coords_D = as.matrix(dist(coords))
+  storage.mode(coords_D) = "double"
   
   ####################
   ##Knots
   ####################
 
-  is.pp = TRUE
+  is_pp = TRUE
   modified.pp = TRUE
 
   if (!missing(knots)) {
@@ -91,8 +91,8 @@ spLM2 = function(formula, data = parent.frame(), coords, knots,
           y.knots = seq(min(y.knots)-y.int, max(y.knots)+y.int, length.out=knots[2])
         }
         
-        knot.coords = as.matrix(expand.grid(x.knots, y.knots))
-        is.pp = TRUE
+        knot_coords = as.matrix(expand.grid(x.knots, y.knots))
+        is_pp = TRUE
       } else {   
         if (knots[1] > 1) {
           x.int = knots[3]
@@ -104,45 +104,45 @@ spLM2 = function(formula, data = parent.frame(), coords, knots,
           y.knots = seq(min(y.knots)-y.int, max(y.knots)+y.int, length.out=knots[2])
         }
         
-        knot.coords = as.matrix(expand.grid(x.knots, y.knots))
-        is.pp = TRUE
+        knot_coords = as.matrix(expand.grid(x.knots, y.knots))
+        is_pp = TRUE
       }
       
     } else if (is.matrix(knots) && ncol(knots) == 2) {
-      knot.coords = knots
-      is.pp = TRUE
+      knot_coords = knots
+      is_pp = TRUE
     } else {
       stop("error: knots is misspecified")
     }
   }
 
   m = 0
-  knots.D = 0
-  coords.knots.D = 0
+  knots_D = 0
+  coords_knots_D = 0
   
-  if (is.pp) {
-    knots.D = as.matrix(dist(knot.coords))
-    m = nrow(knots.D)
-    coords.knots.D = matrix(0, m, n) ##this is for c^t
+  if (is_pp) {
+    knots_D = as.matrix(dist(knot_coords))
+    m = nrow(knots_D)
+    coords_knots_D = matrix(0, m, n) ##this is for c^t
 
     for(i in 1:n) {
-      coords.knots.D[,i] = sqrt((knot.coords[,1]-coords[i,1])^2+
-                                 (knot.coords[,2]-coords[i,2])^2)
+      coords_knots_D[,i] = sqrt((knot_coords[,1]-coords[i,1])^2+
+                                 (knot_coords[,2]-coords[i,2])^2)
     }
     
     storage.mode(modified.pp) = "integer"
     storage.mode(m) = "integer"
-    storage.mode(knots.D) = "double"
-    storage.mode(coords.knots.D) = "double"
+    storage.mode(knots_D) = "double"
+    storage.mode(coords_knots_D) = "double"
   }
 
   ####################################################
   ##Covariance model
   ####################################################
-  if (missing(cov.model))
-    stop("error: cov.model must be specified")
-  if (!cov.model%in%c("gaussian","exponential","matern","spherical","powexp"))
-    stop("error: specified cov.model '",cov.model,"' is not a valid option; choose, from gaussian, exponential, matern, spherical.")
+  if (missing(cov_model))
+    stop("error: cov_model must be specified")
+  if (!cov_model%in%c("gaussian","exponential","matern","spherical","powexp"))
+    stop("error: specified cov_model '",cov_model,"' is not a valid option; choose, from gaussian, exponential, matern, spherical.")
 
   ####################################################
   ##Starting values
@@ -170,7 +170,7 @@ spLM2 = function(formula, data = parent.frame(), coords, knots,
     nugget = TRUE
   }
   
-  if (cov.model %in% c("matern","powexp")) {
+  if (cov_model %in% c("matern","powexp")) {
     if (!"nu" %in% names(starting)) stop("error: nu must be specified in starting value list")
     nu[1] = starting[["nu"]][1]
   }
@@ -185,7 +185,7 @@ spLM2 = function(formula, data = parent.frame(), coords, knots,
   
   prior_list = c("sigma.sq.ig", "phi.unif")
   if(nugget) prior_list[length(prior_list)+1] = "tau.sq.ig"
-  if (cov.model %in% c("matern","powexp")) prior_list[length(prior_list)+1] = "nu.unif"
+  if (cov_model %in% c("matern","powexp")) prior_list[length(prior_list)+1] = "nu.unif"
 
   for(p in prior_list) {
     if (!p %in% names(priors)) 
@@ -200,7 +200,7 @@ spLM2 = function(formula, data = parent.frame(), coords, knots,
   phi[2:3] = priors[["phi.unif"]]
   
   if (nugget) tauSq[2:3] = priors[["tau.sq.ig"]]
-  if (cov.model %in% c("matern","powexp")) nu[2:3] = priors[["nu.unif"]]
+  if (cov_model %in% c("matern","powexp")) nu[2:3] = priors[["nu.unif"]]
 
   ####################################################
   ##Tuning values
@@ -221,7 +221,7 @@ spLM2 = function(formula, data = parent.frame(), coords, knots,
   }
   
     
-  if (cov.model == "matern") {
+  if (cov_model == "matern") {
     if (!"nu" %in% names(sp.tuning)) {stop("error: nu must be specified in tuning value list")}
     nu[4] = sqrt(sp.tuning[["nu"]][1])
   }    
@@ -246,13 +246,13 @@ spLM2 = function(formula, data = parent.frame(), coords, knots,
               
   out = .Call("spmPPLM",
               Y, X, 
-              coords.D, knots.D, coords.knots.D, 
+              coords_D, knots_D, coords_knots_D, 
               nugget,               
               sigmaSq, tauSq, nu, phi,
-              cov.model, n.samples, verbose, n.report,
+              cov_model, n.samples, verbose, n.report,
               PACKAGE = "tsBayes" )
   
-  nParams = 2 + (nugget) + (cov.model %in% c("matern","powexp"))
+  nParams = 2 + (nugget) + (cov_model %in% c("matern","powexp"))
   out$params = out$params[1:nParams,]
 
   out$p.samples = rbind(out$beta,out$params)
@@ -260,21 +260,21 @@ spLM2 = function(formula, data = parent.frame(), coords, knots,
   #out$params = NULL
 
   out$coords = coords
-  out$is.pp = is.pp
+  out$is_pp = is_pp
   out$modified.pp = modified.pp
   
-  if (is.pp)
-    out$knot.coords = knot.coords
+  if (is_pp)
+    out$knot_coords = knot_coords
   
   out$Y = Y
   out$X = X
   out$n = n
   out$m = m
   out$p = p
-  out$knots.D = knots.D
-  out$coords.D = coords.D
-  out$coords.knots.D = coords.knots.D
-  out$cov.model = cov.model
+  out$knots_D = knots_D
+  out$coords_D = coords_D
+  out$coords_knots_D = coords_knots_D
+  out$cov_model = cov_model
   out$nugget = nugget
   out$verbose = verbose
   #out$n.samples = n.samples
@@ -283,7 +283,7 @@ spLM2 = function(formula, data = parent.frame(), coords, knots,
 
   ##subsample
   out$sp.effects = out$sp.effects[,seq(sub.samples[1], sub.samples[2], by=as.integer(sub.samples[3]))]
-  if (is.pp) {out$sp.effects.knots = out$sp.effects.knots[,seq(sub.samples[1], sub.samples[2], by=as.integer(sub.samples[3]))]}
+  if (is_pp) {out$sp.effects.knots = out$sp.effects.knots[,seq(sub.samples[1], sub.samples[2], by=as.integer(sub.samples[3]))]}
   out$p.samples = mcmc(t(out$p.samples[,seq(sub.samples[1], sub.samples[2], by=as.integer(sub.samples[3]))]))
   out$n.samples = nrow(out$p.samples)##get adjusted n.samples
   
