@@ -18,8 +18,6 @@ BEGIN_RCPP
     bool verbose = Rcpp::as<bool>(verbose_r);
     int n_report = Rcpp::as<int>(n_report_r);
 
-    Rcpp::Rcout << "HERE!\n";
-    
     std::string family = Rcpp::as<std::string>(obj["family"]);
     
     bool is_pp = Rcpp::as<bool>(obj["is_pp"]);
@@ -41,9 +39,6 @@ BEGIN_RCPP
     RT_ASSERT(p == pred_X.n_cols,  "Inconsistent number of predictors in pred X.");
     int q = pred_X.n_rows;
     
-
-
-
     cov_model cm(Rcpp::as<Rcpp::List>(obj["cov_model"]));
      
     if (verbose) 
@@ -53,8 +48,6 @@ BEGIN_RCPP
     arma::mat y_pred(q, n_samples);
 
     arma::mat between_D = Rcpp::as<arma::mat>(between_D_r);
-
-    Rcpp::Rcout << "HERE!\n";
 
     if (!is_pp)
     {
@@ -123,8 +116,8 @@ BEGIN_RCPP
             arma::vec XB = pred_X * beta.col(s);
     
             if (family == "binomial")      y_pred.col(s) = 1.0/(1.0 + arma::exp(-1.0 * (XB + w_pred.col(s))));
-            else if (family == "poisson")  y_pred.col(s) =  arma::exp(XB + w_pred.col(s));
-            else if (family == "identity") y_pred.col(s) =  XB + w_pred.col(s);
+            else if (family == "poisson")  y_pred.col(s) = arma::exp(XB + w_pred.col(s));
+            else if (family == "identity") y_pred.col(s) = XB + w_pred.col(s);
             else throw std::runtime_error("Family misspecification in spGLMPredict\n"); 
      
             if (verbose && (s+1) % n_report == 0) 

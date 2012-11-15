@@ -34,7 +34,7 @@ inline void report_sample(int s, int n_samples)
 
 inline void report_accept(std::string name, int s, int accept, int batch_accept, int n_report)
 {
-    Rcpp::Rcout << name << " Acceptance rate: " 
+    Rcpp::Rcout << name << " acceptance rate: " 
                 << "Batch - "  << floor(1000.0*batch_accept/n_report)/10 << "%, "
                 << "Overall - " << floor(1000.0*accept/s)/10 << "%\n";
 }

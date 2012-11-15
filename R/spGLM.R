@@ -336,8 +336,6 @@ spGLM2 = function(formula, family="binomial", weights, data = parent.frame(),
     require(coda)
 
     out$params = mcmc(t(rbind(out$beta, out$theta)))
-    out$n_samples = nrow(out$p.samples) ##get adjusted n_samples
-    
     colnames(out$params) = c(x.names, cov_model$param_names)
 
     class(out) = "spGLM"

@@ -129,12 +129,6 @@ SEXP spPPGLM(SEXP Y_r, SEXP X_r,
             ////////////////////////
 
             arma::vec U = p_amcmc.get_jump();
-
-            //arma::vec U(3);
-            //U[0] = 0.0079;
-            //U[1] = 0.6275;
-            //U[2] = -0.8124;
-
             arma::vec beta_jump  = U(arma::span(0,p-1));
             arma::vec theta_jump = U(arma::span(p,p+n_theta-1));
             
@@ -286,15 +280,6 @@ SEXP spPPGLM(SEXP Y_r, SEXP X_r,
             loglik_cand_e  = cand_state.calc_e_loglik();
 
             double loglik_cand = loglik_cand_theta + loglik_cand_beta + loglik_cand_link + loglik_cand_ws + loglik_cand_e;
-            
-            //Rcpp::Rcout << "ll  = " << loglik_cand_theta
-            //            << ", " << loglik_cand_beta 
-            //            << ", " << loglik_cand_ws
-            //            << ", " << loglik_cand_link 
-            //            << ", " << loglik_cand_e
-            //            << " = " << loglik_cand 
-            //            << " (" << loglik_cur << ")"
-            //            << "\n";
 
             double alpha = std::min(1.0, exp(loglik_cand - loglik_cur));
             if (Rcpp::runif(1)[0] <= alpha)
@@ -310,7 +295,9 @@ SEXP spPPGLM(SEXP Y_r, SEXP X_r,
 
                 accept++;
                 batch_accept++;
-            } else {
+            } 
+            else 
+            {
                 cand_state = cur_state;
             }
             p_amcmc.update(s, alpha);
@@ -326,12 +313,6 @@ SEXP spPPGLM(SEXP Y_r, SEXP X_r,
             loglik_cand_link = 0;
             if      (family == "binomial") loglik_cand_link = cand_state.calc_binomial_loglik(Y, X, weights);
             else if (family == "poisson")  loglik_cand_link = cand_state.calc_poisson_loglik(Y, X);
-            
-
-            //Rcpp::Rcout << "ll2 = " << loglik_cand_ws
-            //            << ", " << loglik_cand_link 
-            //            << " (" << loglik_cur_ws + loglik_cur_link << ")"
-            //            << "\n";
 
             double alpha_ws = std::min(1.0, exp(loglik_cand_ws + loglik_cand_link - loglik_cur_ws - loglik_cur_link));
             if (Rcpp::runif(1)[0] <= alpha_ws)
@@ -365,16 +346,6 @@ SEXP spPPGLM(SEXP Y_r, SEXP X_r,
   
             double alpha_e = std::min(1.0, exp(loglik_cand_e + loglik_cand_link - loglik_cur_e - loglik_cur_link));
             
-            /*Rcpp::Rcout << "can: " << loglik_cand_e
-                        << " + " << loglik_cand_link 
-                        << " = " << loglik_cand_e + loglik_cand_link << "\n"
-                        << "cur: " << loglik_cur_e
-                        << " + " << loglik_cur_link 
-                        << " = " << loglik_cur_e + loglik_cur_link << "\n"
-                        << alpha_e 
-                        << ", " << arma::accu(e_amcmc.get_S())
-                        << "\n\n";*/
-
             if (Rcpp::runif(1)[0] <= alpha_e)
             {
                 cur_state = cand_state;
