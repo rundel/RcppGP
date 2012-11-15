@@ -264,7 +264,6 @@ SEXP spPPGLM(SEXP Y_r, SEXP X_r,
             
             cand_state.update_covs(knotsD, coordsKnotsD);
             cand_state.update_w();
-            cand_state.update_e_var();
 
             // Log Likelihood
             double loglik_cand_theta, loglik_cand_beta, loglik_cand_ws, loglik_cand_link, loglik_cand_e;

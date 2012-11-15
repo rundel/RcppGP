@@ -16,6 +16,7 @@ struct model_state_mpp_glm
     
     arma::mat Cs_U;
     arma::mat Cs_inv;
+    double Cs_ldet;
     arma::mat ct_Csi;
     arma::mat ct_Csi_c;
 
@@ -23,8 +24,9 @@ struct model_state_mpp_glm
     arma::vec w;
     arma::vec e;
 
-    arma::vec e_var;
-    arma::mat e_var_inv;
+    arma::vec e_cov;
+    arma::mat e_cov_inv;
+    double e_cov_ldet;
 
     cov_model *m;
 
@@ -66,8 +68,15 @@ struct model_state_mpp_glm
         arma::mat Cs_U_inv = arma::inv( arma::trimatu(Cs_U) );
         Cs_inv = Cs_U_inv * Cs_U_inv.t();
 
+        Cs_ldet = 2.0 * arma::accu(arma::log(arma::diagvec(Cs_U)));
+
         ct_Csi = c.t() * Cs_inv;
         ct_Csi_c = ct_Csi * c;
+
+        e_cov = C_diag - arma::diagvec(ct_Csi_c);
+        e_cov_inv = arma::diagmat(1.0 / e_cov);
+        e_cov_ldet = arma::accu(arma::log(e_cov));
+
     }
 
     void update_w()
@@ -75,17 +84,12 @@ struct model_state_mpp_glm
         w = ct_Csi * ws + e;
     }
 
-    void update_e_var()
-    {
-        e_var = C_diag - arma::diagvec(ct_Csi_c);
-        e_var_inv = arma::diagmat(1.0 / e_var);
-    }
-
     double calc_theta_loglik()
     {
         double ll = 0.0;
 
-        for (int i=0; i!=m->nparams; ++i) {
+        for (int i=0; i!=m->nparams; ++i)
+        {
             ll += log_likelihood(m->param_dists[i], theta[i], m->param_hyper[i]);
             ll += jacobian_adj(m->param_trans[i], theta[i], m->param_hyper[i]);
         }
@@ -101,12 +105,12 @@ struct model_state_mpp_glm
     double calc_ws_loglik()
     {
         // no 0.5 for the det since we are calcing based on Cholesky
-        return -arma::accu(arma::log(arma::diagvec(Cs_U))) - 0.5 * arma::as_scalar(ws.t() * Cs_inv * ws);
+        return -0.5 * Cs_ldet - 0.5 * arma::as_scalar(ws.t() * Cs_inv * ws);
     }
     
     double calc_e_loglik()
     {
-        return -0.5 * arma::accu(arma::log(e_var)) - 0.5 * arma::as_scalar(e.t() * e_var_inv * e);
+        return -0.5 * e_cov_ldet - 0.5 * arma::as_scalar(e.t() * e_cov_inv * e);
     }
 
     double calc_binomial_loglik(arma::vec const& Y, arma::mat const& X, arma::vec const& weights)
