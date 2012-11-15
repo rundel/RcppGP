@@ -333,10 +333,16 @@ spGLM2 = function(formula, family="binomial", weights, data = parent.frame(),
     out$beta = out$beta[,thin, drop=FALSE]
     out$theta = out$theta[,thin, drop=FALSE]
 
+    out$loglik = out$loglik[,thin, drop=FALSE]
+    
+
     require(coda)
 
     out$params = mcmc(t(rbind(out$beta, out$theta)))
     colnames(out$params) = c(x.names, cov_model$param_names)
+
+    out$loglik_mcmc = mcmc(t(out$loglik))
+    colnames(out$loglik_mcmc) = c("total","theta","beta","link","ws","e")
 
     class(out) = "spGLM"
     out  

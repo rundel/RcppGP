@@ -89,7 +89,7 @@ SEXP spPPGLM(SEXP Y_r, SEXP X_r,
     arma::mat w_star(m, n_samples); 
     arma::mat beta(p, n_samples);
     arma::mat theta(n_theta, n_samples);
-
+    arma::mat loglik(6, n_samples);
 
 
     if (verbose) report_start();
@@ -208,12 +208,19 @@ SEXP spPPGLM(SEXP Y_r, SEXP X_r,
             w.col(s) = cur_state.w;
             beta.col(s) = cur_state.beta;
             theta.col(s) = cur_state.theta;
+            loglik(0,s) = loglik_cur;
+            loglik(1,s) = loglik_cur_theta;
+            loglik(2,s) = loglik_cur_beta;
+            loglik(3,s) = loglik_cur_link;
+            loglik(4,s) = loglik_cur_ws;
+            loglik(5,s) = loglik_cur_e;
 
             if ((s+1) % n_report == 0)
             {
                 if (verbose)
                 {
                     report_sample(s+1, n_samples);
+                    Rcpp::Rcout << "Loglikelihood: " << loglik_cur << "\n";
                     report_accept("theta & beta", s+1, accept, batch_accept, n_report);
                     report_accept("w_star      ", s+1, accept_ws, batch_accept_ws, n_report);
                     report_line();
@@ -266,17 +273,16 @@ SEXP spPPGLM(SEXP Y_r, SEXP X_r,
             cand_state.update_w();
 
             // Log Likelihood
-            double loglik_cand_theta, loglik_cand_beta, loglik_cand_ws, loglik_cand_link, loglik_cand_e;
+            
+            double loglik_cand_theta = cand_state.calc_theta_loglik();
+            double loglik_cand_beta = (beta_prior == "normal") ? cand_state.calc_beta_norm_loglik(beta_hyperparam[0], beta_hyperparam[1]) : 0.0;    
 
-            loglik_cand_theta = cand_state.calc_theta_loglik();
-            loglik_cand_beta = (beta_prior == "normal") ? cand_state.calc_beta_norm_loglik(beta_hyperparam[0], beta_hyperparam[1]) : 0.0;    
-
-            loglik_cand_link = 0;
+            double loglik_cand_link = 0;
             if      (family == "binomial") loglik_cand_link = cand_state.calc_binomial_loglik(Y, X, weights);
             else if (family == "poisson")  loglik_cand_link = cand_state.calc_poisson_loglik(Y, X);
     
-            loglik_cand_ws = cand_state.calc_ws_loglik();
-            loglik_cand_e  = cand_state.calc_e_loglik();
+            double loglik_cand_ws = cand_state.calc_ws_loglik();
+            double loglik_cand_e  = cand_state.calc_e_loglik();
 
             double loglik_cand = loglik_cand_theta + loglik_cand_beta + loglik_cand_link + loglik_cand_ws + loglik_cand_e;
 
@@ -285,12 +291,12 @@ SEXP spPPGLM(SEXP Y_r, SEXP X_r,
             {
                 cur_state = cand_state;
                 
-                loglik_cur = loglik_cand;
+                loglik_cur       = loglik_cand;
                 loglik_cur_theta = loglik_cand_theta;
-                loglik_cur_beta = loglik_cand_beta;
-                loglik_cur_link = loglik_cand_link;
-                loglik_cur_ws = loglik_cand_ws;
-                loglik_cur_e  = loglik_cand_e;
+                loglik_cur_beta  = loglik_cand_beta;
+                loglik_cur_link  = loglik_cand_link;
+                loglik_cur_ws    = loglik_cand_ws;
+                loglik_cur_e     = loglik_cand_e;
 
                 accept++;
                 batch_accept++;
@@ -309,16 +315,17 @@ SEXP spPPGLM(SEXP Y_r, SEXP X_r,
             cand_state.update_w();
 
             loglik_cand_ws = cand_state.calc_ws_loglik();
-            loglik_cand_link = 0;
+            loglik_cand_link = 0.0;
             if      (family == "binomial") loglik_cand_link = cand_state.calc_binomial_loglik(Y, X, weights);
             else if (family == "poisson")  loglik_cand_link = cand_state.calc_poisson_loglik(Y, X);
 
-            double alpha_ws = std::min(1.0, exp(loglik_cand_ws + loglik_cand_link - loglik_cur_ws - loglik_cur_link));
+            double delta = loglik_cand_ws + loglik_cand_link - loglik_cur_ws - loglik_cur_link
+            double alpha_ws = std::min(1.0, exp(delta));
             if (Rcpp::runif(1)[0] <= alpha_ws)
             {
                 cur_state = cand_state;
                 
-                loglik_cur += loglik_cand_ws + loglik_cand_link - loglik_cur_ws - loglik_cur_link;
+                loglik_cur += delta;
                 loglik_cur_link = loglik_cand_link;
                 loglik_cur_ws = loglik_cand_ws;
                 
@@ -343,15 +350,16 @@ SEXP spPPGLM(SEXP Y_r, SEXP X_r,
             if      (family == "binomial") loglik_cand_link = cand_state.calc_binomial_loglik(Y, X, weights);
             else if (family == "poisson")  loglik_cand_link = cand_state.calc_poisson_loglik(Y, X);
   
-            double alpha_e = std::min(1.0, exp(loglik_cand_e + loglik_cand_link - loglik_cur_e - loglik_cur_link));
+            double delta = loglik_cand_e + loglik_cand_link - loglik_cur_e - loglik_cur_link;
+            double alpha_e = std::min(1.0, exp(delta));
             
             if (Rcpp::runif(1)[0] <= alpha_e)
             {
                 cur_state = cand_state;
                 
-                loglik_cur += loglik_cand_e + loglik_cand_link - loglik_cur_e - loglik_cur_link;
+                loglik_cur += delta;
                 loglik_cur_link = loglik_cand_link;
-                loglik_cur_ws = loglik_cand_ws;
+                loglik_cur_e = loglik_cand_e;
                 
                 accept_e++;
                 batch_accept_e++;
@@ -362,12 +370,30 @@ SEXP spPPGLM(SEXP Y_r, SEXP X_r,
             w.col(s) = cur_state.w;
             beta.col(s) = cur_state.beta;
             theta.col(s) = cur_state.theta;
+            
+            loglik(0,s) = loglik_cur;
+            loglik(1,s) = loglik_cur_theta;
+            loglik(2,s) = loglik_cur_beta;
+            loglik(3,s) = loglik_cur_link;
+            loglik(4,s) = loglik_cur_ws;
+            loglik(5,s) = loglik_cur_e;
+
+            //Rcpp::Rcout << "ws: " << cur_state.Cs_ldet 
+            //            << ", " << arma::as_scalar(cur_state.ws.t() * cur_state.Cs_inv * cur_state.ws) 
+            //            << ", " << loglik_cur_ws
+            //            << "\n";
+            //Rcpp::Rcout << "e:  " << cur_state.e_cov_ldet 
+            //            << ", " << arma::as_scalar(cur_state.e.t() * cur_state.e_cov_inv * cur_state.e) 
+            //            << ", " << loglik_cur_e
+            //            << "\n\n";
+
 
             if ((s+1) % n_report == 0)
             {
                 if (verbose)
                 {
                     report_sample(s+1, n_samples);
+                    Rcpp::Rcout << "Loglikelihood: " << loglik_cur << "\n";
                     report_accept("theta & beta", s+1, accept,    batch_accept,    n_report);
                     report_accept("w star      ", s+1, accept_ws, batch_accept_ws, n_report);
                     report_accept("e           ", s+1, accept_e,  batch_accept_e,  n_report);
@@ -406,7 +432,11 @@ SEXP spPPGLM(SEXP Y_r, SEXP X_r,
                               Rcpp::Named("theta") = theta,
                               Rcpp::Named("accept") = accept_results,
                               Rcpp::Named("w") = w,
-                              Rcpp::Named("w_star") = w_star
+                              Rcpp::Named("w_star") = w_star,
+                              Rcpp::Named("loglik") = loglik,
+                              Rcpp::Named("p_adapt") = p_amcmc.get_S(),
+                              Rcpp::Named("ws_adapt") = ws_amcmc.get_S(),
+                              Rcpp::Named("e_adapt") = e_amcmc.get_S()
                               );
 
 //END_RCPP
