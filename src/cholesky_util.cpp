@@ -19,7 +19,7 @@ void drotg(double &a, double &b, double &c, double &s)
     if (fabs(b) >= fabs(a) && c != 0.0) 
         z = 1.0/c;
     
-    if (isnan(r))
+    if (std::isnan(r))
         Rcpp::Rcout << a << ", " << b << ", " << roe << ", " << scale << ", " << r << "\n";
 
     a = r;
