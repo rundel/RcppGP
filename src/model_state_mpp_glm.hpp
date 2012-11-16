@@ -98,26 +98,26 @@ struct model_state_mpp_glm
         // no 0.5 for the det since we are calcing based on Cholesky
         return -0.5 * Cs_ldet - 0.5 * arma::as_scalar(ws.t() * Cs_inv * ws);
     }
-    
-    double calc_e_loglik()
+
+    arma::vec calc_e_loglik()
     {
-        return -0.5 * e_cov_ldet - 0.5 * arma::as_scalar(e.t() * e_cov_inv * e);
+        return -log_e_sd - 0.5 * arma::square(e / e_sd);
     }
 
-    double calc_binomial_loglik(arma::vec const& Y, arma::mat const& X, arma::vec const& weights)
+    arma::vec calc_binomial_loglik(arma::vec const& Y, arma::mat const& X, arma::vec const& weights)
     {
         arma::vec p = 1.0/(1+arma::exp(-X*beta-w));
         arma::vec loglik = Y % arma::log(p) + (weights-Y) % arma::log(1-p);
       
-        return arma::accu(loglik);
+        return loglik;
     }
 
-    double calc_poisson_loglik(arma::vec const& Y, arma::mat const& X)
+    arma::vec calc_poisson_loglik(arma::vec const& Y, arma::mat const& X)
     {
         arma::vec l = X * beta;
         arma::vec loglik = -arma::exp(l+w) + Y % (l+w);
 
-        return arma::accu(loglik);
+        return loglik;
     }
 };
 
