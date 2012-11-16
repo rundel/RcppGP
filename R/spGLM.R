@@ -262,7 +262,6 @@ spGLM2 = function(formula, family="binomial", weights, data = parent.frame(),
     storage.mode(e$start) = "double"
     storage.mode(e$tuning) = "double"
 
-
     ####################################################
     ## Adopt default adaptation params for beta, ws, and e 
     ####################################################
@@ -327,14 +326,11 @@ spGLM2 = function(formula, family="binomial", weights, data = parent.frame(),
 
     thin = seq(start,end,by=thin)
 
-    out$w = out$w[,thin, drop=FALSE]
+    out$beta   = out$beta[,thin, drop=FALSE]
+    out$theta  = out$theta[,thin, drop=FALSE]
+    out$w      = out$w[,thin, drop=FALSE]
     out$w_star = out$w_star[,thin, drop=FALSE]
-
-    out$beta = out$beta[,thin, drop=FALSE]
-    out$theta = out$theta[,thin, drop=FALSE]
-
     out$loglik = out$loglik[,thin, drop=FALSE]
-    
 
     require(coda)
 

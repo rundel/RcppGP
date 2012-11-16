@@ -91,9 +91,8 @@ SEXP spPPGLM(SEXP Y_r, SEXP X_r,
     arma::mat theta(n_theta, n_samples);
     arma::mat loglik(6, n_samples);
 
-
-    if (verbose) report_start();
-
+    if (verbose) 
+        report_start();
 
     vihola_adapt p_amcmc(beta_settings);
     vihola_adapt ws_amcmc(ws_settings);
