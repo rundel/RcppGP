@@ -116,8 +116,6 @@ SEXP spPPGLM(SEXP Y_r, SEXP X_r,
         cur_state.beta = Rcpp::as<arma::vec>(beta_settings["start"]);
         cur_state.ws = Rcpp::as<arma::vec>(ws_settings["start"]);
 
-        //cur_state.update_covs(knotsD, coordsKnotsD);
-        //cur_state.update_w();
         arma::wall_clock t;
         t.tic();
 
@@ -153,10 +151,6 @@ SEXP spPPGLM(SEXP Y_r, SEXP X_r,
 
             double alpha = std::min(1.0, exp(loglik_cand - loglik_cur));
             
-            //Rcpp::Rcout << "theta " << loglik_cand_theta << "\n"
-            //            << "beta  " << loglik_cand_beta << "\n"
-            //            << "ws    " << loglik_cand_ws << "\n"
-            //            << "link  " << loglik_cand_link << "\n\n";
 
             if (Rcpp::runif(1)[0] <= alpha)
             {
@@ -204,6 +198,9 @@ SEXP spPPGLM(SEXP Y_r, SEXP X_r,
             }
             ws_amcmc.update(s, alpha_ws);
 
+            ////////////////////
+            // Save Results
+            ////////////////////
 
             w_star.col(s) = cur_state.ws;
             w.col(s) = cur_state.w;
@@ -234,14 +231,6 @@ SEXP spPPGLM(SEXP Y_r, SEXP X_r,
                 batch_accept_ws = 0;
             }
         }
-
-        //if (verbose)
-        //{
-        //    report_sample(n_samples, n_samples);
-        //    report_accept("theta+beta", n_samples, accept, batch_accept, n_report);
-        //    report_accept("w star", n_samples, accept_ws, batch_accept_ws, n_report);
-        //    report_line();
-        //}
         
         accept_results["params"] = acc_rate;
         accept_results["w_star"] = acc_rate_ws;
@@ -275,8 +264,6 @@ SEXP spPPGLM(SEXP Y_r, SEXP X_r,
             
             cand_state.update_covs(knotsD, coordsKnotsD);
             cand_state.update_w();
-
-            // Log Likelihood
             
             double loglik_cand_theta = cand_state.calc_theta_loglik();
             double loglik_cand_beta = (beta_prior == "normal") ? cand_state.calc_beta_norm_loglik(beta_hyperparam[0], beta_hyperparam[1]) : 0.0;    
@@ -309,10 +296,11 @@ SEXP spPPGLM(SEXP Y_r, SEXP X_r,
             {
                 cand_state = cur_state;
             }
-            p_amcmc.update(s, alpha);
-
+            
+            p_amcmc.update(s, alpha_p);
+            
             ////////////////////
-            // Update w*
+            // Update ws
             ////////////////////
 
             cand_state.update_ws( ws_amcmc.get_jump() );
@@ -335,11 +323,13 @@ SEXP spPPGLM(SEXP Y_r, SEXP X_r,
                 
                 accept_ws++;
                 batch_accept_ws++;
-            } else {
+            }
+            else
+            {
                 cand_state = cur_state;
             }
-            ws_amcmc.update(s, alpha_ws);
             
+            ws_amcmc.update(s, alpha_ws);
 
             ////////////////////
             // Update e
@@ -370,6 +360,10 @@ SEXP spPPGLM(SEXP Y_r, SEXP X_r,
             }
             e_amcmc.update(s, alpha_e);
 
+            ////////////////////
+            // Save Results
+            ////////////////////
+
             w_star.col(s) = cur_state.ws;
             w.col(s) = cur_state.w;
             beta.col(s) = cur_state.beta;
@@ -381,16 +375,6 @@ SEXP spPPGLM(SEXP Y_r, SEXP X_r,
             loglik(3,s) = loglik_cur_link;
             loglik(4,s) = loglik_cur_ws;
             loglik(5,s) = loglik_cur_e;
-
-            //Rcpp::Rcout << "ws: " << cur_state.Cs_ldet 
-            //            << ", " << arma::as_scalar(cur_state.ws.t() * cur_state.Cs_inv * cur_state.ws) 
-            //            << ", " << loglik_cur_ws
-            //            << "\n";
-            //Rcpp::Rcout << "e:  " << cur_state.e_cov_ldet 
-            //            << ", " << arma::as_scalar(cur_state.e.t() * cur_state.e_cov_inv * cur_state.e) 
-            //            << ", " << loglik_cur_e
-            //            << "\n\n";
-
 
             if ((s+1) % n_report == 0)
             {
@@ -412,25 +396,12 @@ SEXP spPPGLM(SEXP Y_r, SEXP X_r,
                 batch_accept_ws = 0;
                 batch_accept_e  = 0;
             }
-
         }
-
-        //if (verbose)
-        //{
-        //    report_sample(n_samples, n_samples);
-        //    report_accept("theta+beta", n_samples, accept, batch_accept, n_report);
-        //    report_accept("w star", n_samples, accept_ws, batch_accept_ws, n_report);
-        //    report_accept("e", n_samples, accept_e, batch_accept_e, n_report);
-        //    report_line();
-        //}
 
         accept_results["params"] = acc_rate;
         accept_results["w_star"] = acc_rate_ws;
         accept_results["e"] = acc_rate_e;
     }
-
-
-    
 
     return Rcpp::List::create(Rcpp::Named("beta") = beta,
                               Rcpp::Named("theta") = theta,
