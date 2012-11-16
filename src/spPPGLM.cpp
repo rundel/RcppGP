@@ -118,6 +118,8 @@ SEXP spPPGLM(SEXP Y_r, SEXP X_r,
 
         //cur_state.update_covs(knotsD, coordsKnotsD);
         //cur_state.update_w();
+        arma::wall_clock t;
+        t.tic();
 
         for(int s = 0; s < n_samples; s++){
 
@@ -218,7 +220,7 @@ SEXP spPPGLM(SEXP Y_r, SEXP X_r,
             {
                 if (verbose)
                 {
-                    report_sample(s+1, n_samples);
+                    report_sample(s+1, n_samples, t.toc());
                     Rcpp::Rcout << "Loglikelihood: " << loglik_cur << "\n";
                     report_accept("theta & beta", s+1, accept, batch_accept, n_report);
                     report_accept("w_star      ", s+1, accept_ws, batch_accept_ws, n_report);
@@ -253,6 +255,9 @@ SEXP spPPGLM(SEXP Y_r, SEXP X_r,
         cur_state.ws    = Rcpp::as<arma::vec>(ws_settings["start"]);
         cur_state.e     = Rcpp::as<arma::vec>(e_settings["start"]);
         
+        arma::wall_clock t;
+        t.tic();
+
         for(int s = 0; s < n_samples; s++)
         {            
             model_state_mpp_glm cand_state = cur_state;
@@ -391,7 +396,7 @@ SEXP spPPGLM(SEXP Y_r, SEXP X_r,
             {
                 if (verbose)
                 {
-                    report_sample(s+1, n_samples);
+                    report_sample(s+1, n_samples, t.toc());
                     Rcpp::Rcout << "Loglikelihood: " << loglik_cur << "\n";
                     report_accept("theta & beta", s+1, accept,    batch_accept,    n_report);
                     report_accept("w star      ", s+1, accept_ws, batch_accept_ws, n_report);
