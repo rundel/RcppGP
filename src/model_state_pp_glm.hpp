@@ -9,13 +9,12 @@ struct model_state_pp_glm {
 
     arma::vec beta;
     arma::vec theta;
-    arma::mat Cs;
-    arma::mat c;
-    arma::mat Cs_U;
     arma::mat Cs_inv;
     arma::mat ct_Csi;
     arma::vec ws;
     arma::vec w;
+
+    double Cs_ldet;
 
     cov_model *m;
 
@@ -49,11 +48,15 @@ struct model_state_pp_glm {
 
     void update_covs(arma::mat const& knotsD, arma::mat const& coordsKnotsD)
     {
-        Cs = m->calc_cov(knotsD, theta);
-        c = m->calc_cov(coordsKnotsD, theta);
+        arma::mat Cs = m->calc_cov(knotsD, theta);
+        arma::mat c  = m->calc_cov(coordsKnotsD, theta);
 
-        Cs_U = arma::chol(Cs);
+        arma::mat Cs_U = arma::chol(Cs);
+
+        Cs_ldet = 2.0 * arma::accu(arma::log(arma::diagvec(Cs_U)));
+
         arma::mat Cs_U_inv = arma::inv( arma::trimatu(Cs_U) );
+        
         Cs_inv = Cs_U_inv * Cs_U_inv.t();
         ct_Csi = c.t() * Cs_inv;
     }
@@ -77,7 +80,7 @@ struct model_state_pp_glm {
 
     double calc_ws_loglik()
     {
-        return -arma::accu(arma::log(arma::diagvec(Cs_U))) - 0.5 * arma::as_scalar(ws.t() * Cs_inv * ws);
+        return -0.5 * Cs_ldet - 0.5 * arma::as_scalar(ws.t() * Cs_inv * ws);
     }
     
     double calc_binomial_loglik(arma::vec const& Y, arma::mat const& X, arma::vec const& weights)

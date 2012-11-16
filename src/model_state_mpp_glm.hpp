@@ -10,23 +10,16 @@ struct model_state_mpp_glm
     arma::vec beta;
     arma::vec theta;
     
-    arma::vec C_diag;
-    arma::mat Cs;
-    arma::mat c;
-    
-    arma::mat Cs_U;
     arma::mat Cs_inv;
     double Cs_ldet;
     arma::mat ct_Csi;
-    arma::mat ct_Csi_c;
-
+    
     arma::vec ws;
     arma::vec w;
     arma::vec e;
 
-    arma::vec e_cov;
-    arma::mat e_cov_inv;
-    double e_cov_ldet;
+    arma::vec e_sd;
+    arma::vec log_e_sd;
 
     cov_model *m;
 
@@ -60,23 +53,21 @@ struct model_state_mpp_glm
 
     void update_covs(arma::mat const& knotsD, arma::mat const& coordsKnotsD)
     {
-        Cs = m->calc_cov(knotsD, theta);
-        c = m->calc_cov(coordsKnotsD, theta);
-        C_diag = m->calc_cov(arma::zeros<arma::vec>(c.n_cols), theta);
+        arma::mat Cs = m->calc_cov(knotsD, theta);
+        arma::mat c = m->calc_cov(coordsKnotsD, theta);
+        arma::vec C_diag = m->calc_cov(arma::zeros<arma::vec>(c.n_cols), theta);
 
-        Cs_U = arma::chol(Cs);
+        arma::mat Cs_U = arma::chol(Cs);
         arma::mat Cs_U_inv = arma::inv( arma::trimatu(Cs_U) );
         Cs_inv = Cs_U_inv * Cs_U_inv.t();
-
         Cs_ldet = 2.0 * arma::accu(arma::log(arma::diagvec(Cs_U)));
 
         ct_Csi = c.t() * Cs_inv;
-        ct_Csi_c = ct_Csi * c;
-
-        e_cov = C_diag - arma::diagvec(ct_Csi_c);
-        e_cov_inv = arma::diagmat(1.0 / e_cov);
-        e_cov_ldet = arma::accu(arma::log(e_cov));
-
+        
+        arma::vec ct_Csi_c_diag = arma::sum(ct_Csi % c.t(), 1);
+        
+        e_sd = arma::sqrt(C_diag - ct_Csi_c_diag);
+        log_e_sd = arma::log(e_sd);
     }
 
     void update_w()
