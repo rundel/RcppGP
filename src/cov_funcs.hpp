@@ -3,7 +3,7 @@
 
 #include "enum_util.hpp"
 
-enum cov_func {nugget_cov, const_cov, exp_cov, gauss_cov, powexp_cov, sphere_cov, matern_cov, rq_cov, periodic_cov}; 
+enum cov_func {nugget_cov, const_cov, exp_cov, gauss_cov, powexp_cov, sphere_cov, matern_cov, rq_cov, periodic_cov, periodic_exp_cov}; 
 
 typedef enum_map<cov_func> cov_func_map;
 typedef enum_property<int> cov_func_nparams;
