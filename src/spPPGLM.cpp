@@ -65,7 +65,6 @@ SEXP spPPGLM(SEXP Y_r, SEXP X_r,
     int n_theta = cov_settings.nparams;
     int n_total_p = n_theta + p;
 
-
     if(verbose){
         Rcpp::Rcout << "----------------------------------------\n";
         Rcpp::Rcout << "\tGeneral model description\n";
@@ -318,6 +317,7 @@ SEXP spPPGLM(SEXP Y_r, SEXP X_r,
             // Update ws
             ////////////////////
 
+            cand_state.update_ws( ws_amcmc.get_jump() );
             cand_state.update_w();
 
             loglik_cand_ws = cand_state.calc_ws_loglik();
@@ -350,6 +350,7 @@ SEXP spPPGLM(SEXP Y_r, SEXP X_r,
             // Update e
             ////////////////////
 
+            cand_state.update_e( e_amcmc.get_jump() );
             cand_state.update_w();
 
             loglik_cand_e = cand_state.calc_e_loglik();
@@ -359,13 +360,14 @@ SEXP spPPGLM(SEXP Y_r, SEXP X_r,
   
             arma::vec delta_e = loglik_cand_e + loglik_cand_link - loglik_cur_e - loglik_cur_link;
             
-            arma::vec alpha_e = exp(delta_e);
-            arma::uvec sub = arma::find(alpha_e > 1.0);
-            alpha_e.elem(sub) = arma::ones<arma::vec>(sub.n_elem);
-
+            arma::vec alpha_e = arma::exp(delta_e);
             arma::vec U = arma::randu<arma::vec>(n);
+
             for(int i=0; i!=n; ++i)
             {
+                if (alpha_e[i] > 1.0)
+                    alpha_e[i] = 1.0;
+
                 if (U[i] <= alpha_e[i])
                 {
                     cur_state.e[i] = cand_state.e[i];
