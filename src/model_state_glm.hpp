@@ -40,8 +40,6 @@ struct model_state_glm
         is_mod_pp(is_mod_pp_)
     { 
         loglik = -std::numeric_limits<double>::max();
-    
-
     }
 
     void update_ws(arma::vec const& jump)
@@ -97,17 +95,15 @@ struct model_state_glm
             w += e;
     }
 
-    double calc_theta_loglik()
+    void calc_theta_loglik()
     {
-        double ll = 0.0;
+        loglik_theta = 0.0;
 
         for (int i=0; i!=m->nparams; ++i)
         {
-            ll += log_likelihood(m->param_dists[i], theta[i], m->param_hyper[i]);
-            ll += jacobian_adj(m->param_trans[i], theta[i], m->param_hyper[i]);
+            loglik_theta += log_likelihood(m->param_dists[i], theta[i], m->param_hyper[i]);
+            loglik_theta += jacobian_adj(m->param_trans[i], theta[i], m->param_hyper[i]);
         }
-
-        return ll;
     }
 
     void calc_beta_loglik(std::string const& prior, std::vector<arma::vec> const& beta_hyperp) //arma::vec const& beta_mu, arma::vec const& beta_sd)
@@ -127,7 +123,7 @@ struct model_state_glm
         }
     }
 
-    double calc_ws_loglik()
+    void calc_ws_loglik()
     {
         loglik_ws = -0.5 * Cs_ldet - 0.5 * arma::as_scalar(ws.t() * Cs_inv * ws);
     }
