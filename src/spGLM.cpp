@@ -8,7 +8,7 @@
 SEXP spGLM(SEXP Y_r, SEXP X_r,
            SEXP coordsD_r, SEXP knotsD_r, SEXP coordsKnotsD_r,
            SEXP family_r, SEXP weights_r,
-           SEXP beta_r, SEXP ws_r, SEXP e_r,
+           SEXP theta_r, SEXP beta_r, SEXP ws_r, SEXP e_r,
            SEXP cov_model_r, 
            SEXP is_pp_r, SEXP is_mod_pp_r,
            SEXP n_samples_r, SEXP verbose_r, SEXP n_report_r,
@@ -37,6 +37,7 @@ SEXP spGLM(SEXP Y_r, SEXP X_r,
 
     cov_model cov_settings(cov_model_r);
 
+    Rcpp::List theta_settings(theta_r);
     Rcpp::List beta_settings(beta_r);
     Rcpp::List ws_settings(ws_r);
     Rcpp::List e_settings(e_r);
@@ -61,7 +62,6 @@ SEXP spGLM(SEXP Y_r, SEXP X_r,
     bool verbose  = Rcpp::as<bool>(verbose_r);
     
     int n_theta = cov_settings.nparams;
-    int n_total_p = n_theta + p;
 
     if(verbose){
         Rcpp::Rcout << "----------------------------------------\n";
@@ -93,7 +93,8 @@ SEXP spGLM(SEXP Y_r, SEXP X_r,
     if (verbose) 
         report_start();
 
-    vihola_adapt p_amcmc(beta_settings);
+    vihola_adapt theta_amcmc(theta_settings);
+    vihola_adapt beta_amcmc(beta_settings);
     vihola_adapt ws_amcmc(ws_settings);
     vihola_ind_adapt e_amcmc(e_settings);
 
@@ -103,15 +104,24 @@ SEXP spGLM(SEXP Y_r, SEXP X_r,
     {
         model_state_glm cur_state(&cov_settings, is_pp, is_mod_pp);
 
-        cur_state.theta = cov_settings.param_start;
+        cur_state.theta = Rcpp::as<arma::vec>(theta_settings["start"]);
         cur_state.beta = Rcpp::as<arma::vec>(beta_settings["start"]);
         cur_state.ws = Rcpp::as<arma::vec>(ws_settings["start"]);
         if (is_mod_pp)
             cur_state.e = Rcpp::as<arma::vec>(e_settings["start"]);
 
-        int accept    = 0, batch_accept    = 0;
-        int accept_ws = 0, batch_accept_ws = 0;
-        std::vector<double> acc_rate, acc_rate_ws;
+        //cur_state.calc_theta_loglik();
+        //cur_state.calc_beta_loglik(beta_prior, beta_hyperparam);
+        //cur_state.calc_link_loglik(family, Y, X, weights);
+        //cur_state.calc_ws_loglik();
+        //if (is_mod_pp)
+        //    cur_state.calc_e_loglik();
+        //cand_state.calc_loglik();
+
+        int accept_theta = 0, batch_accept_theta = 0;
+        int accept_beta  = 0, batch_accept_beta  = 0;
+        int accept_ws    = 0, batch_accept_ws    = 0;
+        std::vector<double> acc_rate_theta, acc_rate_beta, acc_rate_ws;
 
         arma::uvec accept_e  = arma::zeros<arma::uvec>(n);
         arma::uvec batch_accept_e = arma::zeros<arma::uvec>(n);
@@ -125,15 +135,10 @@ SEXP spGLM(SEXP Y_r, SEXP X_r,
             model_state_glm cand_state = cur_state;
 
             /////////////////////////
-            // Update beta & theta
+            // Update theta
             ////////////////////////
-
-            arma::vec j = p_amcmc.get_jump();
-            arma::vec beta_jump  = j(arma::span(0, p-1));
-            arma::vec theta_jump = j(arma::span(p, p+n_theta-1));
             
-            cand_state.update_beta( beta_jump );
-            cand_state.update_theta( theta_jump );
+            cand_state.update_theta( theta_amcmc.get_jump() );
             cand_state.update_covs(knotsD, coordsKnotsD);
             cand_state.update_w();
             
@@ -143,24 +148,51 @@ SEXP spGLM(SEXP Y_r, SEXP X_r,
             cand_state.calc_ws_loglik();
             if (is_mod_pp)
                 cand_state.calc_e_loglik();
-
             cand_state.calc_loglik();
             
-            double alpha_p = std::min(1.0, exp(cand_state.loglik - cur_state.loglik));
-            if (Rcpp::runif(1)[0] <= alpha_p)
+            double alpha_theta = std::min(1.0, exp(cand_state.loglik - cur_state.loglik));
+            if (Rcpp::runif(1)[0] <= alpha_theta)
             {
                 cur_state = cand_state;
-
-                accept++;
-                batch_accept++;
+                accept_theta++;
+                batch_accept_theta++;
             } 
             else 
             {
                 cand_state = cur_state;
             }
             
-            p_amcmc.update(s, alpha_p);
+            theta_amcmc.update(s, alpha_theta);
             
+            /////////////////////////
+            // Update beta
+            ////////////////////////
+
+            cand_state.update_beta( beta_amcmc.get_jump() );
+
+            cand_state.calc_beta_loglik(beta_prior, beta_hyperparam);
+            cand_state.calc_link_loglik(family, Y, X, weights);
+            
+            double delta_beta =  cand_state.loglik_beta + arma::accu(cand_state.loglik_link)
+                                - cur_state.loglik_beta - arma::accu(cur_state.loglik_link);
+
+            double alpha_beta = std::min(1.0, exp(delta_beta));
+            if (Rcpp::runif(1)[0] <= alpha_beta)
+            {
+                cand_state.loglik += delta_beta;
+                cur_state = cand_state;
+
+                accept_beta++;
+                batch_accept_beta++;
+            }
+            else
+            {
+                cand_state = cur_state;
+            }
+
+            beta_amcmc.update(s, alpha_beta);
+
+
             ////////////////////
             // Update ws
             ////////////////////
@@ -186,14 +218,16 @@ SEXP spGLM(SEXP Y_r, SEXP X_r,
             {
                 cand_state = cur_state;
             }
-            
+
             ws_amcmc.update(s, alpha_ws);
+
+            ////////////////////
+            // Update e
+            ////////////////////
 
             if (is_mod_pp)
             {
-                ////////////////////
-                // Update e
-                ////////////////////
+
 
                 cand_state.update_e( e_amcmc.get_jump() );
                 cand_state.update_w();
@@ -252,17 +286,24 @@ SEXP spGLM(SEXP Y_r, SEXP X_r,
                 {
                     report_sample(s+1, n_samples, t.toc());
                     Rcpp::Rcout << "Log likelihood: " << cur_state.loglik << "\n";
-                    report_accept("theta & beta", s+1, accept,    batch_accept,    n_report);
-                    report_accept("w star      ", s+1, accept_ws, batch_accept_ws, n_report);
+                    report_accept("theta : ", s+1, accept_theta, batch_accept_theta, n_report);
+                    report_accept("beta  : ", s+1, accept_beta,  batch_accept_beta,  n_report);
+                    report_accept("w*    : ", s+1, accept_ws,    batch_accept_ws,    n_report);
                     if (is_mod_pp)
-                        report_accept("e           ", (s+1), arma::mean(accept_e),  arma::mean(batch_accept_e),  n_report);
+                        report_accept("e     : ", (s+1), arma::mean(accept_e),  arma::mean(batch_accept_e),  n_report);
+                    Rcpp::Rcout << "Beta Prop: \n" << beta_amcmc.get_S();
+                    Rcpp::Rcout << "Theta Prop: \n" << theta_amcmc.get_S();
+
                     report_line();
                 }
 
-                acc_rate.push_back(1.0*accept/s);
+                acc_rate_theta.push_back(1.0*accept_theta/s);
+                acc_rate_beta.push_back(1.0*accept_beta/s);
                 acc_rate_ws.push_back(1.0*accept_ws/s);
-                batch_accept    = 0;
-                batch_accept_ws = 0;
+                
+                batch_accept_theta = 0;
+                batch_accept_beta = 0;
+                batch_accept_ws    = 0;
                 
                 if (is_mod_pp)
                 {
@@ -272,7 +313,8 @@ SEXP spGLM(SEXP Y_r, SEXP X_r,
             }
         }
 
-        accept_results["params"] = acc_rate;
+        accept_results["theta"] = acc_rate_theta;
+        accept_results["beta"] = acc_rate_beta;
         accept_results["w_star"] = acc_rate_ws;
         if (is_mod_pp)
             accept_results["e"] = acc_rate_e;
@@ -286,8 +328,9 @@ SEXP spGLM(SEXP Y_r, SEXP X_r,
     results["w"]        = w;
     results["w_star"]   = w_star;
     results["loglik"]   = loglik;
-    results["p_adapt"]  = p_amcmc.get_S();
-    results["ws_adapt"] = ws_amcmc.get_S();
+    results["theta_adapt"] = theta_amcmc.get_S();
+    results["beta_adapt"]  = beta_amcmc.get_S();
+    results["ws_adapt"]    = ws_amcmc.get_S();
     if (is_mod_pp)
         results["e_adapt"] = e_amcmc.get_S();
 
