@@ -1,4 +1,4 @@
-spGLM2 = function(formula, family="binomial", weights, data = parent.frame(), 
+spGLM = function(formula, family="binomial", weights, data = parent.frame(), 
                   coords, knots = c(10,10),
                   beta, w_star = list(), e = list(),
                   cov_model,
@@ -186,6 +186,18 @@ spGLM2 = function(formula, family="binomial", weights, data = parent.frame(),
     storage.mode(verbose) = "logical"
 
     ####################################################
+    ## theta settings
+    #################################################### 
+
+    theta = list()
+
+    theta$tuning = as.matrix(cov_model$param_tuning)
+    theta$start = cov_model$param_start
+
+    storage.mode(theta$start) = "double"
+    storage.mode(theta$tuning) = "double"
+
+    ####################################################
     ## beta settings
     #################################################### 
 
@@ -200,12 +212,6 @@ spGLM2 = function(formula, family="binomial", weights, data = parent.frame(),
 
     beta$tuning = as.matrix(beta$tuning)
     stopifnot( all(dim(beta$tuning) == c(p,1)) | all(dim(beta$tuning) == c(p,p)) )
-
-    if (ncol(beta$tuning) == 1) {
-        beta$tuning = rbind(beta$tuning, as.matrix(cov_model$param_tuning))
-    } else {
-        beta$tuning = block_diag_mat(beta$tuning, diag(cov_model$param_tuning))
-    }
 
     storage.mode(beta$start) = "double"
     storage.mode(beta$tuning) = "double"
@@ -223,8 +229,7 @@ spGLM2 = function(formula, family="binomial", weights, data = parent.frame(),
     ## ws settings
     #################################################### 
 
-
-    if (missing(w_star))
+    if (is_pp & missing(w_star))
         stop("error: w star settings must be specified")
     
     if (is.null(w_star$start))  w_star$start  = rep(0,m)
@@ -279,6 +284,7 @@ spGLM2 = function(formula, family="binomial", weights, data = parent.frame(),
         return(x)
     } 
 
+    theta = adapt_defaults(theta)
     beta = adapt_defaults(beta)
     w_star = adapt_defaults(w_star)
     e = adapt_defaults(e)
@@ -287,11 +293,11 @@ spGLM2 = function(formula, family="binomial", weights, data = parent.frame(),
     ##Pack it up and off it goes
     ####################################################
 
-    out = .Call("spPPGLM", Y, X,
+    out = .Call("spGLM", Y, X,
                 coords_D, knots_D, coords_knots_D,
                 family, weights,
-                beta, w_star, e,
-                cov_model, modified_pp, 
+                theta, beta, w_star, e,
+                cov_model, is_pp, modified_pp, 
                 n_samples, verbose, n_report,
                 n_adapt, target_accept, gamma,
                 PACKAGE="tsBayes")  
@@ -338,9 +344,17 @@ spGLM2 = function(formula, family="binomial", weights, data = parent.frame(),
     colnames(out$params) = c(x.names, cov_model$param_names)
 
     out$loglik_mcmc = mcmc(t(out$loglik))
-    colnames(out$loglik_mcmc) = c("total","theta","beta","link","ws","e")
+
+    ll_names = c("total","theta","beta","link")
+    if (is_pp)
+    {
+        ll_names = c(ll_names, "ws")
+        if (modified_pp)
+            ll_names = c(ll_names, "e")
+    }
+    colnames(out$loglik_mcmc) = ll_names
 
     class(out) = "spGLM"
-    out  
+    return (out)
 }
 
