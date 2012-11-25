@@ -20,27 +20,28 @@ SEXP spGLM(SEXP Y_r, SEXP X_r,
 
     Rcpp::RNGScope scope;
 
+    bool is_pp = Rcpp::as<bool>(is_pp_r);
+    bool is_mod_pp = Rcpp::as<bool>(is_mod_pp_r);
+
     arma::vec Y = Rcpp::as<arma::vec>(Y_r);
     arma::mat X = Rcpp::as<arma::mat>(X_r);
 
-    arma::mat coordsD = Rcpp::as<arma::mat>(coordsD_r);
     arma::mat knotsD = Rcpp::as<arma::mat>(knotsD_r);
     arma::mat coordsKnotsD = Rcpp::as<arma::mat>(coordsKnotsD_r);
-    
+
     int p = X.n_cols;       // # of betas
     int n = X.n_rows;       // # of samples
     int m = knotsD.n_rows;  // # of knots
-  
+    
     std::string family = Rcpp::as<std::string>(family_r);
     arma::vec weights = Rcpp::as<arma::vec>(weights_r);
 
-    bool is_pp = Rcpp::as<bool>(is_pp_r);
-    bool is_mod_pp = Rcpp::as<bool>(is_mod_pp_r);
 
     cov_model cov_settings(cov_model_r);
 
     Rcpp::List theta_settings(theta_r);
     Rcpp::List beta_settings(beta_r);
+    Rcpp::List w_settings(w_r);
     Rcpp::List ws_settings(ws_r);
     Rcpp::List e_settings(e_r);
 
@@ -65,46 +66,205 @@ SEXP spGLM(SEXP Y_r, SEXP X_r,
     
     int n_theta = cov_settings.nparams;
 
-    if(verbose){
-        Rcpp::Rcout << "----------------------------------------\n";
-        Rcpp::Rcout << "\tGeneral model description\n";
-        Rcpp::Rcout << "----------------------------------------\n";
-        Rcpp::Rcout << "Model fit with " << n << " observations.\n";
-        Rcpp::Rcout << "Number of covariates " << p << " (including intercept if specified).\n";
-        //Rcpp::Rcout << "Using the " << covModel << " spatial correlation model.\n";
-        
-        std::string mod_str = (is_mod_pp) ? "modified" : "non-modified"; 
-        Rcpp::Rcout << "Using " << mod_str <<  " predictive process with " << m << " knots.\n";
-        Rcpp::Rcout << "Number of MCMC samples " << n_samples << ".\n\n";
-
-        Rcpp::Rcout << "Priors and hyperpriors:\n";
-        
-        // FIXME
-    } 
-
-
-
-    arma::mat w(n, n_samples);
-    arma::mat w_star(m, n_samples); 
-    arma::mat beta(p, n_samples);
     arma::mat theta(n_theta, n_samples);
-    
-    int n_loglik = (!is_pp) ? 4 : (!is_mod_pp) ? 5 : 6; 
+    arma::mat beta(p, n_samples);
+    arma::mat w(n, n_samples);
+    arma::mat w_star, e;
+    if (is_pp)
+        w_star.resize(m, n_samples); 
+    if (is_mod_pp)
+        e.resize(n,n_samples);
+
+    int n_loglik = (!is_pp) ? 5 : (!is_mod_pp) ? 5 : 6; 
     arma::mat loglik(n_loglik, n_samples);
 
-    if (verbose) 
-        report_start();
 
-    vihola_adapt theta_amcmc(theta_settings);
-    vihola_adapt beta_amcmc(beta_settings);
-    vihola_adapt ws_amcmc(ws_settings);
-    vihola_ind_adapt e_amcmc(e_settings);
+    if (verbose) {
+        Rcpp::Rcout << "----------------------------------------\n"
+                    << "\tGeneral model description\n"
+                    << "----------------------------------------\n"
+                    << "\n"
+                    << "Fitting GLM ...\n" 
+                    << "Family      : " << family << "\n"
+                    << "Observations: " << n << "\n"
+                    << "Covariates  : " << p << "\n"
+                    << "MCMC samples: " << n_samples << "\n"
+                    << "Using PP    : " << is_pp << "\n";
+        if (is_pp)
+        {
+            Rcpp::Rcout << "Using mod PP: " << is_mod_pp << "\n"
+                        << "Knots       : " << m << "\n";
+        }
+
+        Rcpp::Rcout << "\n";
+
+        Rcpp::Rcout << "Priors and hyperpriors:\n";
+        //Rcpp::Rcout << "Using the " << covModel << " spatial correlation model.\n";
+        
+        // FIXME
+    
+        report_start();
+    } 
 
     Rcpp::List accept_results;
+    boost::timer::cpu_timer timer;
 
-    if (is_pp)
+    if (!is_pp)
     {
-        model_state_glm cur_state(&cov_settings, is_pp, is_mod_pp);
+        arma::mat coordsD = Rcpp::as<arma::mat>(coordsD_r);
+
+        vihola_adapt theta_amcmc(theta_settings);
+        vihola_adapt beta_amcmc(beta_settings);
+        vihola_adapt w_amcmc(w_settings);
+        
+        model_state_glm cur_state(&cov_settings);
+
+        cur_state.theta = Rcpp::as<arma::vec>(theta_settings["start"]);
+        cur_state.beta = Rcpp::as<arma::vec>(beta_settings["start"]);
+        cur_state.w = Rcpp::as<arma::vec>(w_settings["start"]);
+
+        cur_state.update_covs(coordsD);
+        cur_state.calc_theta_loglik();
+        cur_state.calc_beta_loglik(beta_prior, beta_hyperparam);
+        cur_state.calc_link_loglik(family, Y, X, weights);
+        cur_state.calc_w_loglik();
+        cur_state.calc_loglik();
+
+
+
+        int accept_theta = 0, batch_accept_theta = 0;
+        int accept_beta  = 0, batch_accept_beta  = 0;
+        int accept_w     = 0, batch_accept_w    = 0;
+        std::vector<double> acc_rate_theta, acc_rate_beta, acc_rate_w;
+
+        for(int s = 0; s < n_samples; s++)
+        {              
+            model_state_glm cand_state = cur_state;
+
+            /////////////////////////
+            // Update theta
+            ////////////////////////
+            
+            cand_state.update_theta( theta_amcmc.get_jump() );
+            cand_state.update_covs(coordsD);
+            
+            cand_state.calc_theta_loglik();
+            cand_state.calc_w_loglik();
+            cand_state.calc_loglik();
+            
+            //Rcpp::Rcout << "Cur : "; cur_state.get_logliks().t().raw_print(Rcpp::Rcout);
+            //Rcpp::Rcout << "Cand: "; cand_state.get_logliks().t().raw_print(Rcpp::Rcout);
+            //Rcpp::Rcout << "Acc : " << std::min(1.0, exp(cand_state.loglik - cur_state.loglik)) << "\n";
+
+            double alpha_theta = std::min(1.0, exp(cand_state.loglik - cur_state.loglik));
+            if (Rcpp::runif(1)[0] <= alpha_theta)
+            {
+                cur_state = cand_state;
+                accept_theta++;
+                batch_accept_theta++;
+            } 
+            else 
+            {
+                cand_state = cur_state;
+            }
+            
+            theta_amcmc.update(s, alpha_theta);
+            
+            /////////////////////////
+            // Update beta
+            ////////////////////////
+
+            cand_state.update_beta( beta_amcmc.get_jump() );
+
+            cand_state.calc_beta_loglik(beta_prior, beta_hyperparam);
+            cand_state.calc_link_loglik(family, Y, X, weights);
+            cand_state.calc_loglik();
+
+            double alpha_beta = std::min(1.0, exp(cand_state.loglik - cur_state.loglik));
+            if (Rcpp::runif(1)[0] <= alpha_beta)
+            {
+                cur_state = cand_state;
+                accept_beta++;
+                batch_accept_beta++;
+            }
+            else
+            {
+                cand_state = cur_state;
+            }
+
+            beta_amcmc.update(s, alpha_beta);
+
+
+            ////////////////////
+            // Update w
+            ////////////////////
+
+            cand_state.update_w( w_amcmc.get_jump() );
+
+            cand_state.calc_w_loglik();
+            cand_state.calc_link_loglik(family, Y, X, weights);
+            cand_state.calc_loglik();
+
+            double alpha_w = std::min(1.0, exp(cand_state.loglik - cur_state.loglik));
+            if (Rcpp::runif(1)[0] <= alpha_w)
+            {
+                cur_state = cand_state;
+
+                accept_w++;
+                batch_accept_w++;
+            }
+            
+            w_amcmc.update(s, alpha_w);
+
+            ////////////////////
+            // Save Results
+            ////////////////////
+
+            theta.col(s) = cur_state.theta;
+            beta.col(s) = cur_state.beta;
+            w.col(s) = cur_state.w;
+            loglik.col(s) = cur_state.get_logliks();
+
+            if ((s+1) % n_report == 0)
+            {
+                if (verbose)
+                {
+                    long double wall_sec = timer.elapsed().wall / 1000000000.0L;
+
+                    report_sample(s+1, n_samples, wall_sec);
+                    Rcpp::Rcout << "Log likelihood: " << cur_state.loglik << "\n";
+                    report_accept("theta : ", s+1, accept_theta, batch_accept_theta, n_report);
+                    report_accept("beta  : ", s+1, accept_beta,  batch_accept_beta,  n_report);
+                    report_accept("w     : ", s+1, accept_w,     batch_accept_w,     n_report);
+                    report_line();
+                    //arma::mat tmp = w_amcmc.get_S();
+                    //Rcpp::Rcout << tmp.submat(0,0,5,5);
+                    
+
+                }
+
+                acc_rate_theta.push_back(1.0*accept_theta/(s+1));
+                acc_rate_beta.push_back(1.0*accept_beta/(s+1));
+                acc_rate_w.push_back(1.0*accept_w/(s+1));
+                
+                batch_accept_theta = 0;
+                batch_accept_beta  = 0;
+                batch_accept_w     = 0;
+            }
+        }
+
+        accept_results["theta"] = acc_rate_theta;
+        accept_results["beta"]  = acc_rate_beta;
+        accept_results["w"]     = acc_rate_w;
+    }
+    else // is_pp
+    {
+        vihola_adapt theta_amcmc(theta_settings);
+        vihola_adapt beta_amcmc(beta_settings);
+        vihola_adapt ws_amcmc(ws_settings);
+        vihola_ind_adapt e_amcmc(e_settings);
+
+        model_state_glm_pp cur_state(&cov_settings, is_mod_pp);
 
         cur_state.theta = Rcpp::as<arma::vec>(theta_settings["start"]);
         cur_state.beta = Rcpp::as<arma::vec>(beta_settings["start"]);
@@ -131,7 +291,7 @@ SEXP spGLM(SEXP Y_r, SEXP X_r,
 
         for(int s = 0; s < n_samples; s++)
         {            
-            model_state_glm cand_state = cur_state;
+            model_state_glm_pp cand_state = cur_state;
 
             /////////////////////////
             // Update theta
@@ -266,18 +426,12 @@ SEXP spGLM(SEXP Y_r, SEXP X_r,
             // Save Results
             ////////////////////
 
+            theta.col(s) = cur_state.theta;
+            beta.col(s) = cur_state.beta;
             w_star.col(s) = cur_state.ws;
             w.col(s) = cur_state.w;
-            beta.col(s) = cur_state.beta;
-            theta.col(s) = cur_state.theta;
-
-            loglik(0,s) = cur_state.loglik;
-            loglik(1,s) = cur_state.loglik_theta;
-            loglik(2,s) = cur_state.loglik_beta;
-            loglik(3,s) = arma::accu(cur_state.loglik_link);
-            loglik(4,s) = cur_state.loglik_ws;
-            if (is_mod_pp)
-                loglik(5,s) = arma::accu(cur_state.loglik_e);
+            e.col(s) = cur_state.e;
+            loglik.col(s) = cur_state.get_logliks();
 
             if ((s+1) % n_report == 0)
             {
@@ -292,9 +446,6 @@ SEXP spGLM(SEXP Y_r, SEXP X_r,
                     report_accept("w*    : ", s+1, accept_ws,    batch_accept_ws,    n_report);
                     if (is_mod_pp)
                         report_accept("e     : ", (s+1), arma::mean(accept_e),  arma::mean(batch_accept_e),  n_report);
-                    Rcpp::Rcout << "Beta Prop: \n" << beta_amcmc.get_S();
-                    Rcpp::Rcout << "Theta Prop: \n" << theta_amcmc.get_S();
-
                     report_line();
                 }
 
@@ -303,7 +454,7 @@ SEXP spGLM(SEXP Y_r, SEXP X_r,
                 acc_rate_ws.push_back(1.0*accept_ws/s);
                 
                 batch_accept_theta = 0;
-                batch_accept_beta = 0;
+                batch_accept_beta  = 0;
                 batch_accept_ws    = 0;
                 
                 if (is_mod_pp)
@@ -329,11 +480,6 @@ SEXP spGLM(SEXP Y_r, SEXP X_r,
     results["w"]        = w;
     results["w_star"]   = w_star;
     results["loglik"]   = loglik;
-    results["theta_adapt"] = theta_amcmc.get_S();
-    results["beta_adapt"]  = beta_amcmc.get_S();
-    results["ws_adapt"]    = ws_amcmc.get_S();
-    if (is_mod_pp)
-        results["e_adapt"] = e_amcmc.get_S();
 
     return results;
 
