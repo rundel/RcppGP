@@ -87,8 +87,13 @@ spPredict_GLM = function(r, pred_coords, pred_X, thin, verbose, n_report)
     r$beta = r$beta[,thin, drop=FALSE]
     r$theta = r$theta[,thin, drop=FALSE]
     r$w = r$w[,thin, drop=FALSE]
-    r$w_star = r$w_star[,thin, drop=FALSE]
-
+    
+    if (r$is_pp)
+    {
+        r$w_star = r$w_star[,thin, drop=FALSE]
+        r$e = r$e[,thin, drop=FALSE]
+    }
+    
     pred_D = sp_dist(pred_coords)
     between_D = NULL
     if(r$is_pp) between_D = sp_dist(pred_coords, r$knot_coords)

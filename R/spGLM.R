@@ -1,7 +1,7 @@
 spGLM = function(formula, family="binomial", weights, data = parent.frame(), 
-                  coords, knots = c(10,10),
-                  beta, w_star = list(), e = list(),
+                  coords, knots=NULL,
                   cov_model,
+                  beta, w = list(), w_star = list(), e = list(),
                   modified_pp = TRUE, n_samples, sub_samples, verbose=TRUE, n_report=100,
                   n_adapt=0, target_accept=0.234, gamma=0.5, ...) 
 {
@@ -91,6 +91,7 @@ spGLM = function(formula, family="binomial", weights, data = parent.frame(),
     ####################
     is_pp = FALSE
 
+
     if (!is.null(knots))
     {
         if (is.vector(knots) && length(knots) %in% c(2,3))
@@ -147,8 +148,8 @@ spGLM = function(formula, family="binomial", weights, data = parent.frame(),
     }
 
     m = 0
-    knots_D = 0
-    coords_knots_D = 0
+    knots_D = matrix()
+    coords_knots_D = matrix()
 
     if (is_pp) {
         knots_D = as.matrix(dist(knot_coords))
@@ -226,11 +227,32 @@ spGLM = function(formula, family="binomial", weights, data = parent.frame(),
     }
 
     ####################################################
+    ## w settings
+    #################################################### 
+
+    if (!is_pp & missing(w))
+        stop("error: w settings must be specified for non-PP models")
+    
+    if (is.null(w$start))  w$start  = rep(0,n)
+    if (is.null(w$tuning)) w$tuning = rep(1,n)
+    
+    if (length(w$start) == 1)  w$start  = rep(w$start,n)
+    if (length(w$tuning) == 1) w$tuning = rep(w$tuning,n)
+
+    stopifnot(length(w$start)==n)
+    
+    w$tuning = as.matrix(w$tuning)
+    stopifnot( all(dim(w$tuning) == c(n,1)) | all(dim(w$tuning) == c(n,n)) )
+
+    storage.mode(w$start) = "double"
+    storage.mode(w$tuning) = "double"
+
+    ####################################################
     ## ws settings
     #################################################### 
 
     if (is_pp & missing(w_star))
-        stop("error: w star settings must be specified")
+        stop("error: w star settings must be specified for PP models")
     
     if (is.null(w_star$start))  w_star$start  = rep(0,m)
     if (is.null(w_star$tuning)) w_star$tuning = rep(1,m)
@@ -250,8 +272,8 @@ spGLM = function(formula, family="binomial", weights, data = parent.frame(),
     ## e settings
     #################################################### 
 
-    if (modified_pp & missing(e))
-        stop("error: e settings must be specified")
+    if (is_pp & modified_pp & missing(e))
+        stop("error: e settings must be specified for modified PP models")
 
     if (is.null(e$start))  e$start  = rep(0,n)
     if (is.null(e$tuning)) e$tuning = rep(1,n)
@@ -268,7 +290,7 @@ spGLM = function(formula, family="binomial", weights, data = parent.frame(),
     storage.mode(e$tuning) = "double"
 
     ####################################################
-    ## Adopt default adaptation params for beta, ws, and e 
+    ## Adopt default adaptation params for beta, w, ws, and e 
     ####################################################
 
     adapt_defaults = function(x)
@@ -286,6 +308,7 @@ spGLM = function(formula, family="binomial", weights, data = parent.frame(),
 
     theta = adapt_defaults(theta)
     beta = adapt_defaults(beta)
+    w = adapt_defaults(w)
     w_star = adapt_defaults(w_star)
     e = adapt_defaults(e)
 
@@ -296,8 +319,9 @@ spGLM = function(formula, family="binomial", weights, data = parent.frame(),
     out = .Call("spGLM", Y, X,
                 coords_D, knots_D, coords_knots_D,
                 family, weights,
-                theta, beta, w_star, e,
-                cov_model, is_pp, modified_pp, 
+                cov_model, 
+                theta, beta, w, w_star, e,
+                is_pp, modified_pp, 
                 n_samples, verbose, n_report,
                 n_adapt, target_accept, gamma,
                 PACKAGE="tsBayes")  
@@ -314,11 +338,15 @@ spGLM = function(formula, family="binomial", weights, data = parent.frame(),
     out$Y = Y
     out$X = X
     
-    out$knot_coords = knot_coords
-    out$knots_D = knots_D
     out$coords_D = coords_D
-    out$coords_knots_D = coords_knots_D
     
+    if (is_pp)
+    {
+        out$knot_coords = knot_coords
+        out$knots_D = knots_D
+        out$coords_knots_D = coords_knots_D
+    }
+
     out$cov_model = cov_model
     
     out$sub_samples = sub_samples
@@ -332,10 +360,15 @@ spGLM = function(formula, family="binomial", weights, data = parent.frame(),
 
     thin = seq(start,end,by=thin)
 
-    out$beta   = out$beta[,thin, drop=FALSE]
-    out$theta  = out$theta[,thin, drop=FALSE]
-    out$w      = out$w[,thin, drop=FALSE]
-    out$w_star = out$w_star[,thin, drop=FALSE]
+    out$beta  = out$beta[,thin, drop=FALSE]
+    out$theta = out$theta[,thin, drop=FALSE]
+    out$w     = out$w[,thin, drop=FALSE]
+    if (is_pp)
+    {
+        out$w_star = out$w_star[,thin, drop=FALSE]
+        out$e      = out$e[,thin, drop=FALSE]
+    }
+    
     out$loglik = out$loglik[,thin, drop=FALSE]
 
     require(coda)
@@ -351,6 +384,10 @@ spGLM = function(formula, family="binomial", weights, data = parent.frame(),
         ll_names = c(ll_names, "ws")
         if (modified_pp)
             ll_names = c(ll_names, "e")
+    }
+    else
+    {
+        ll_names = c(ll_names, "w")
     }
     colnames(out$loglik_mcmc) = ll_names
 

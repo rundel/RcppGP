@@ -52,7 +52,7 @@ BEGIN_RCPP
     if (!is_pp)
     {
         arma::mat w      = Rcpp::as<arma::mat>(obj["w"]);
-        arma::mat obs_D  = Rcpp::as<arma::mat>(obj["coord_D"]);
+        arma::mat obs_D  = Rcpp::as<arma::mat>(obj["coords_D"]);
         arma::mat pred_D = Rcpp::as<arma::mat>(pred_D_r);
         
         RT_ASSERT(n_samples == w.n_cols, "Inconsistent number of samples between beta and w.");
@@ -73,7 +73,7 @@ BEGIN_RCPP
             arma::vec mu = btw_obsi * w.col(s);
             arma::mat sigma = pred_cov - btw_obsi * between_cov.t();
 
-            w_pred.col(s) = mu + arma::chol(sigma).t() * arma::randn<arma::vec>(n); 
+            w_pred.col(s) = mu + arma::chol(sigma).t() * arma::randn<arma::vec>(q); 
 
             arma::vec XB = pred_X * beta.col(s);
 
