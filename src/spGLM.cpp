@@ -1,3 +1,5 @@
+#include <boost/timer/timer.hpp>
+
 #include "assert.hpp"
 #include "report.hpp"
 #include "spGLM.hpp"
@@ -126,9 +128,6 @@ SEXP spGLM(SEXP Y_r, SEXP X_r,
         arma::uvec accept_e  = arma::zeros<arma::uvec>(n);
         arma::uvec batch_accept_e = arma::zeros<arma::uvec>(n);
         std::vector<arma::vec> acc_rate_e;
-
-        arma::wall_clock t;
-        t.tic();
 
         for(int s = 0; s < n_samples; s++)
         {            
@@ -284,7 +283,9 @@ SEXP spGLM(SEXP Y_r, SEXP X_r,
             {
                 if (verbose)
                 {
-                    report_sample(s+1, n_samples, t.toc());
+                    long double wall_sec = timer.elapsed().wall / 1000000000.0L;
+
+                    report_sample(s+1, n_samples, wall_sec);//t.toc());
                     Rcpp::Rcout << "Log likelihood: " << cur_state.loglik << "\n";
                     report_accept("theta : ", s+1, accept_theta, batch_accept_theta, n_report);
                     report_accept("beta  : ", s+1, accept_beta,  batch_accept_beta,  n_report);

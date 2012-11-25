@@ -17,11 +17,13 @@ inline void report_start_predict()
                 << "-------------------------------------------------\n";
 }
 
-inline void report_progress(int s, int n_samples, std::string const& type, double time)
+inline void report_progress(int s, int n_samples, std::string const& type, long double time)
 {
     Rcpp::Rcout << type << ": " << s << " of " <<  n_samples << " (" << floor(1000*s/n_samples)/10 << "%)";
-    if (time != 0.0)
-        Rcpp::Rcout << " in " << time << "s (" << floor(100.0 * time / s) / 100 << "s/iter)";
+    if (time != 0.0) 
+    {
+        Rcpp::Rcout << " in " << floor(10.0 * time) / 10 << "s (" << floor(10000.0 * time / s) / 10000 << "s/iter)";
+    }
     Rcpp::Rcout << "\n";                            
 }
 
