@@ -152,10 +152,6 @@ SEXP spGLM(SEXP Y_r, SEXP X_r,
             cand_state.calc_w_loglik();
             cand_state.calc_loglik();
             
-            //Rcpp::Rcout << "Cur : "; cur_state.get_logliks().t().raw_print(Rcpp::Rcout);
-            //Rcpp::Rcout << "Cand: "; cand_state.get_logliks().t().raw_print(Rcpp::Rcout);
-            //Rcpp::Rcout << "Acc : " << std::min(1.0, exp(cand_state.loglik - cur_state.loglik)) << "\n";
-
             double alpha_theta = std::min(1.0, exp(cand_state.loglik - cur_state.loglik));
             if (Rcpp::runif(1)[0] <= alpha_theta)
             {
@@ -237,10 +233,6 @@ SEXP spGLM(SEXP Y_r, SEXP X_r,
                     report_accept("beta  : ", s+1, accept_beta,  batch_accept_beta,  n_report);
                     report_accept("w     : ", s+1, accept_w,     batch_accept_w,     n_report);
                     report_line();
-                    //arma::mat tmp = w_amcmc.get_S();
-                    //Rcpp::Rcout << tmp.submat(0,0,5,5);
-                    
-
                 }
 
                 acc_rate_theta.push_back(1.0*accept_theta/(s+1));
