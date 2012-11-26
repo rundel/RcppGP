@@ -123,7 +123,7 @@ public:
         update_jump();
     }
 
-    arma::mat get_S()
+    arma::vec get_S()
     {
         return S;
     }
