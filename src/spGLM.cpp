@@ -115,7 +115,7 @@ SEXP spGLM(SEXP Y_r, SEXP X_r,
 
         vihola_adapt theta_amcmc(theta_settings);
         vihola_adapt beta_amcmc(beta_settings);
-        vihola_adapt w_amcmc(w_settings);
+        vihola_ind_adapt w_amcmc(w_settings);
         
         model_state_glm cur_state(&cov_settings);
 
@@ -183,11 +183,7 @@ SEXP spGLM(SEXP Y_r, SEXP X_r,
                 accept_beta++;
                 batch_accept_beta++;
             }
-            else
-            {
-                cand_state = cur_state;
-            }
-
+            
             beta_amcmc.update(s, alpha_beta);
 
 
@@ -195,21 +191,48 @@ SEXP spGLM(SEXP Y_r, SEXP X_r,
             // Update w
             ////////////////////
 
-            cand_state.update_w( w_amcmc.get_jump() );
+            arma::vec j = w_amcmc.get_jump();
 
-            cand_state.calc_w_loglik();
-            cand_state.calc_link_loglik(family, Y, X, weights);
-            cand_state.calc_loglik();
-
-            double alpha_w = std::min(1.0, exp(cand_state.loglik - cur_state.loglik));
-            if (Rcpp::runif(1)[0] <= alpha_w)
-            {
-                cur_state = cand_state;
-
-                accept_w++;
-                batch_accept_w++;
-            }
+            arma::vec l = X * cur_state.beta;
             
+            arma::vec alpha_w(n);
+            for(int i=0; i!=n; ++i)
+            {
+                double loglik_w = - 0.5 * (j(i)*j(i)*cur_state.C_inv(i,i) + 2*j(i)*arma::accu(cur_state.w % cur_state.C_inv.col(i)));
+
+                double loglik_link = 0.0;
+
+                if (family == "poisson")
+                {
+                    loglik_link = -exp(l(i) + cur_state.w(i)) * (exp(j(i))-1.0) + Y(i)*j(i);
+                }
+                else if (family == "binomial")
+                {
+                    double p1 = 1.0/(1+exp(-l(i)-w(i)-j(i)));
+                    double p2 = 1.0/(1+exp(-l(i)-w(i)));
+                    loglik_link = Y(i) * log(p1) + (weights(i)-Y(i)) * log(1-p1)
+                                - Y(i) * log(p2) + (weights(i)-Y(i)) * log(1-p2);
+                }
+                else
+                {
+                    throw std::runtime_error("Unknown family.");
+                }    
+
+
+                alpha_w(i) = std::min(1.0, exp(loglik_w + loglik_link));
+                if (Rcpp::runif(1)[0] <= alpha_w(i))
+                {
+                    cur_state.w(i) += j(i);
+
+                    cur_state.loglik_w    += loglik_w;
+                    cur_state.loglik_link += loglik_link;
+
+                    //accept_w++;
+                    //batch_accept_w++;
+                }
+            }
+            cur_state.calc_loglik();
+
             w_amcmc.update(s, alpha_w);
 
             ////////////////////
