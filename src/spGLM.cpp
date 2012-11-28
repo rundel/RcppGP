@@ -134,8 +134,11 @@ SEXP spGLM(SEXP Y_r, SEXP X_r,
 
         int accept_theta = 0, batch_accept_theta = 0;
         int accept_beta  = 0, batch_accept_beta  = 0;
-        int accept_w     = 0, batch_accept_w    = 0;
-        std::vector<double> acc_rate_theta, acc_rate_beta, acc_rate_w;
+        std::vector<double> acc_rate_theta, acc_rate_beta;
+
+        arma::uvec accept_w       = arma::zeros<arma::uvec>(n);
+        arma::uvec batch_accept_w = arma::zeros<arma::uvec>(n);
+        std::vector<arma::vec> acc_rate_w;
 
         for(int s = 0; s < n_samples; s++)
         {              
@@ -144,7 +147,7 @@ SEXP spGLM(SEXP Y_r, SEXP X_r,
             /////////////////////////
             // Update theta
             ////////////////////////
-            
+
             cand_state.update_theta( theta_amcmc.get_jump() );
             cand_state.update_covs(coordsD);
             
@@ -182,53 +185,40 @@ SEXP spGLM(SEXP Y_r, SEXP X_r,
                 cur_state = cand_state;
                 accept_beta++;
                 batch_accept_beta++;
+            } else {
+                cand_state = cur_state;
             }
             
             beta_amcmc.update(s, alpha_beta);
-
 
             ////////////////////
             // Update w
             ////////////////////
 
             arma::vec j = w_amcmc.get_jump();
-
-            arma::vec l = X * cur_state.beta;
             
+            cand_state.update_w(j);
+            cand_state.calc_link_loglik(family, Y, X, weights);
+            
+            arma::vec loglik_link = cand_state.loglik_link - cur_state.loglik_link;
+
             arma::vec alpha_w(n);
             for(int i=0; i!=n; ++i)
             {
                 double loglik_w = - 0.5 * (j(i)*j(i)*cur_state.C_inv(i,i) + 2*j(i)*arma::accu(cur_state.w % cur_state.C_inv.col(i)));
 
-                double loglik_link = 0.0;
+                
 
-                if (family == "poisson")
-                {
-                    loglik_link = -exp(l(i) + cur_state.w(i)) * (exp(j(i))-1.0) + Y(i)*j(i);
-                }
-                else if (family == "binomial")
-                {
-                    double p1 = 1.0/(1+exp(-l(i)-w(i)-j(i)));
-                    double p2 = 1.0/(1+exp(-l(i)-w(i)));
-                    loglik_link = Y(i) * log(p1) + (weights(i)-Y(i)) * log(1-p1)
-                                - Y(i) * log(p2) + (weights(i)-Y(i)) * log(1-p2);
-                }
-                else
-                {
-                    throw std::runtime_error("Unknown family.");
-                }    
-
-
-                alpha_w(i) = std::min(1.0, exp(loglik_w + loglik_link));
+                alpha_w(i) = std::min(1.0, exp(loglik_w + loglik_link[i]));
                 if (Rcpp::runif(1)[0] <= alpha_w(i))
                 {
                     cur_state.w(i) += j(i);
 
-                    cur_state.loglik_w    += loglik_w;
-                    cur_state.loglik_link += loglik_link;
+                    cur_state.loglik_w       += loglik_w;
+                    cur_state.loglik_link[i] += loglik_link[i];
 
-                    //accept_w++;
-                    //batch_accept_w++;
+                    accept_w[i]++;
+                    batch_accept_w[i]++;
                 }
             }
             cur_state.calc_loglik();
@@ -252,19 +242,20 @@ SEXP spGLM(SEXP Y_r, SEXP X_r,
 
                     report_sample(s+1, n_samples, wall_sec);
                     Rcpp::Rcout << "Log likelihood: " << cur_state.loglik << "\n";
-                    report_accept("theta : ", s+1, accept_theta, batch_accept_theta, n_report);
-                    report_accept("beta  : ", s+1, accept_beta,  batch_accept_beta,  n_report);
-                    report_accept("w     : ", s+1, accept_w,     batch_accept_w,     n_report);
+                    report_accept("theta: ", s+1, accept_theta, batch_accept_theta, n_report);
+                    report_accept("beta : ", s+1, accept_beta,  batch_accept_beta,  n_report);
+                    report_accept("w    : ", s+1, arma::mean(accept_w), arma::mean(batch_accept_w), n_report);
                     report_line();
                 }
 
                 acc_rate_theta.push_back(1.0*accept_theta/(s+1));
-                acc_rate_beta.push_back(1.0*accept_beta/(s+1));
-                acc_rate_w.push_back(1.0*accept_w/(s+1));
-                
                 batch_accept_theta = 0;
+                
+                acc_rate_beta.push_back(1.0*accept_beta/(s+1));
                 batch_accept_beta  = 0;
-                batch_accept_w     = 0;
+                
+                acc_rate_w.push_back(arma::conv_to<arma::vec>::from(accept_w) / (s+1));
+                batch_accept_w.fill(0);
             }
         }
 
@@ -276,7 +267,7 @@ SEXP spGLM(SEXP Y_r, SEXP X_r,
     {
         vihola_adapt theta_amcmc(theta_settings);
         vihola_adapt beta_amcmc(beta_settings);
-        vihola_adapt ws_amcmc(ws_settings);
+        vihola_ind_adapt ws_amcmc(ws_settings);
         vihola_ind_adapt e_amcmc(e_settings);
 
         model_state_glm_pp cur_state(&cov_settings, is_mod_pp);
@@ -293,14 +284,17 @@ SEXP spGLM(SEXP Y_r, SEXP X_r,
         //cur_state.calc_ws_loglik();
         //if (is_mod_pp)
         //    cur_state.calc_e_loglik();
-        //cand_state.calc_loglik();
+        //cur_state.calc_loglik();
 
         int accept_theta = 0, batch_accept_theta = 0;
         int accept_beta  = 0, batch_accept_beta  = 0;
-        int accept_ws    = 0, batch_accept_ws    = 0;
-        std::vector<double> acc_rate_theta, acc_rate_beta, acc_rate_ws;
+        std::vector<double> acc_rate_theta, acc_rate_beta;
 
-        arma::uvec accept_e  = arma::zeros<arma::uvec>(n);
+        arma::uvec accept_ws       = arma::zeros<arma::uvec>(m);
+        arma::uvec batch_accept_ws = arma::zeros<arma::uvec>(m);
+        std::vector<arma::vec> acc_rate_ws;
+
+        arma::uvec accept_e       = arma::zeros<arma::uvec>(n);
         arma::uvec batch_accept_e = arma::zeros<arma::uvec>(n);
         std::vector<arma::vec> acc_rate_e;
 
@@ -371,29 +365,39 @@ SEXP spGLM(SEXP Y_r, SEXP X_r,
             // Update ws
             ////////////////////
 
-            cand_state.update_ws( ws_amcmc.get_jump() );
-            cand_state.update_w();
+            arma::vec j = ws_amcmc.get_jump();
+            arma::vec l = X * cur_state.beta;
 
-            cand_state.calc_ws_loglik();
-            cand_state.calc_link_loglik(family, Y, X, weights);
-
-            double delta_ws =  cand_state.loglik_ws + arma::accu(cand_state.loglik_link)
-                              - cur_state.loglik_ws - arma::accu(cur_state.loglik_link);
-            double alpha_ws = std::min(1.0, exp(delta_ws));
-            if (Rcpp::runif(1)[0] <= alpha_ws)
+            arma::vec alpha_ws(m);
+            for(int i=0; i!=m; ++i)
             {
-                cand_state.loglik += delta_ws;
-                cur_state = cand_state;
+                double loglik_ws = - 0.5 * (j(i)*j(i)*cur_state.Cs_inv(i,i) + 2*j(i)*arma::accu(cur_state.ws % cur_state.Cs_inv.col(i)));
 
-                accept_ws++;
-                batch_accept_ws++;
-            }
-            else
-            {
-                cand_state = cur_state;
+                cand_state.w = cur_state.w + cur_state.ct_Csi.col(i) * j(i);
+                cand_state.calc_link_loglik(family, Y, X, weights);
+
+                double loglik_link = arma::accu(cand_state.loglik_link - cur_state.loglik_link);
+
+
+                alpha_ws(i) = std::min(1.0, exp(loglik_ws + loglik_link));
+                if (Rcpp::runif(1)[0] <= alpha_ws(i))
+                {
+                    cur_state.ws(i) += j(i);
+
+                    cur_state.w = cand_state.w;
+
+                    cur_state.loglik_ws += loglik_ws;
+                    cur_state.loglik_link = cand_state.loglik_link;
+
+                    accept_ws[i]++;
+                    batch_accept_ws[i]++;
+                }
             }
 
             ws_amcmc.update(s, alpha_ws);
+
+            cur_state.calc_loglik();            
+            cand_state = cur_state;
 
             ////////////////////
             // Update e
@@ -401,8 +405,6 @@ SEXP spGLM(SEXP Y_r, SEXP X_r,
 
             if (is_mod_pp)
             {
-
-
                 cand_state.update_e( e_amcmc.get_jump() );
                 cand_state.update_w();
 
@@ -445,7 +447,8 @@ SEXP spGLM(SEXP Y_r, SEXP X_r,
             beta.col(s) = cur_state.beta;
             w_star.col(s) = cur_state.ws;
             w.col(s) = cur_state.w;
-            e.col(s) = cur_state.e;
+            if (is_mod_pp)
+                e.col(s) = cur_state.e;
             loglik.col(s) = cur_state.get_logliks();
 
             if ((s+1) % n_report == 0)
@@ -456,25 +459,26 @@ SEXP spGLM(SEXP Y_r, SEXP X_r,
 
                     report_sample(s+1, n_samples, wall_sec);//t.toc());
                     Rcpp::Rcout << "Log likelihood: " << cur_state.loglik << "\n";
-                    report_accept("theta : ", s+1, accept_theta, batch_accept_theta, n_report);
-                    report_accept("beta  : ", s+1, accept_beta,  batch_accept_beta,  n_report);
-                    report_accept("w*    : ", s+1, accept_ws,    batch_accept_ws,    n_report);
+                    report_accept("theta: ", s+1, accept_theta, batch_accept_theta, n_report);
+                    report_accept("beta : ", s+1, accept_beta,  batch_accept_beta,  n_report);
+                    report_accept("w*   : ", s+1, arma::mean(accept_ws), arma::mean(batch_accept_ws),    n_report);
                     if (is_mod_pp)
                         report_accept("e     : ", (s+1), arma::mean(accept_e),  arma::mean(batch_accept_e),  n_report);
                     report_line();
                 }
 
-                acc_rate_theta.push_back(1.0*accept_theta/s);
-                acc_rate_beta.push_back(1.0*accept_beta/s);
-                acc_rate_ws.push_back(1.0*accept_ws/s);
-                
+                acc_rate_theta.push_back(1.0*accept_theta/(s+1));
                 batch_accept_theta = 0;
-                batch_accept_beta  = 0;
-                batch_accept_ws    = 0;
+
+                acc_rate_beta.push_back(1.0*accept_beta/(s+1));
+                batch_accept_beta  = 0;                
+
+                acc_rate_ws.push_back(arma::conv_to<arma::vec>::from(accept_ws) / (s+1));
+                batch_accept_ws.fill(0);
                 
                 if (is_mod_pp)
                 {
-                    acc_rate_e.push_back(arma::conv_to<arma::vec>::from(accept_e) / s);
+                    acc_rate_e.push_back(arma::conv_to<arma::vec>::from(accept_e) / (s+1));
                     batch_accept_e.fill(0);
                 }
             }

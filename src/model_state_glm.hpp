@@ -22,7 +22,7 @@ struct model_state_glm
     double loglik_theta;
     double loglik_beta;
     double loglik_w;
-    double loglik_link;
+    arma::vec loglik_link;
 
     model_state_glm(cov_model *m_) 
       : m(m_)
@@ -98,16 +98,16 @@ struct model_state_glm
         if (family == "binomial")
         {
             arma::vec p = 1.0/(1+arma::exp(-X*beta-w));
-            loglik_link = arma::accu(Y % arma::log(p) + (weights-Y) % arma::log(1-p));
+            loglik_link = Y % arma::log(p) + (weights-Y) % arma::log(1-p);
         }
         else if (family == "poisson")
         {
             arma::vec l = X * beta;
-            loglik_link = arma::accu(-arma::exp(l+w) + Y % (l+w));
+            loglik_link = -arma::exp(l+w) + Y % (l+w);
         }
         else if (family == "identity")
         {
-            loglik_link = 0.0;
+            loglik_link = arma::zeros<arma::vec>(Y.n_rows);
         }
         else
         {
@@ -117,7 +117,7 @@ struct model_state_glm
 
     void calc_loglik()
     {
-        loglik = loglik_theta + loglik_beta + loglik_w + loglik_link;
+        loglik = loglik_theta + loglik_beta + loglik_w + arma::accu(loglik_link);
     }
 
     arma::vec get_logliks()
@@ -126,7 +126,7 @@ struct model_state_glm
         res[0] = loglik;
         res[1] = loglik_theta;
         res[2] = loglik_beta;
-        res[3] = loglik_link;
+        res[3] = arma::accu(loglik_link);
         res[4] = loglik_w;
     
         return res;
