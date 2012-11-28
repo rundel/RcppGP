@@ -43,6 +43,12 @@ cov_model::cov_model(SEXP covModel_r)
 
         param_hyper.push_back( Rcpp::as<arma::vec>(hyp[i]) );
     }
+
+    param_nfree  = Rcpp::as<int>(cov_model_opts["param_nfree"]);
+    param_nfixed = Rcpp::as<int>(cov_model_opts["param_nfixed"]);
+    
+    param_free_index = Rcpp::as<arma::uvec>(cov_model_opts["param_free_index"]) - 1;
+
 }
 
 template<>

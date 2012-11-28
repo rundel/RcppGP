@@ -40,10 +40,12 @@ struct model_state_glm
 
     void update_theta(arma::vec const& jump)
     {
-        RT_ASSERT(jump.n_elem == m->nparams, "Jump size differs from number of covariance parameters.");
+        RT_ASSERT(jump.n_elem == m->param_nfree, "Jump size differs from number of free covariance parameters.");
 
-        for (int i=0; i!=m->nparams; ++i) {
-            theta[i] = param_update(m->param_trans[i], theta[i], jump(i), m->param_hyper[i]);
+        for (int i=0; i!=m->param_nfree; ++i) 
+        {
+            int j = m->param_free_index[i];
+            theta[j] = param_update(m->param_trans[j], theta[j], jump(i), m->param_hyper[j]);
         }
     }
 
@@ -182,10 +184,12 @@ struct model_state_glm_pp
 
     void update_theta(arma::vec const& jump)
     {
-        RT_ASSERT(jump.n_elem == m->nparams, "Jump size differs from number of covariance parameters.");
+        RT_ASSERT(jump.n_elem == m->param_nfree, "Jump size differs from number of free covariance parameters.");
 
-        for (int i=0; i!=m->nparams; ++i) {
-            theta[i] = param_update(m->param_trans[i], theta[i], jump(i), m->param_hyper[i]);
+        for (int i=0; i!=m->param_nfree; ++i) 
+        {
+            int j = m->param_free_index[i];
+            theta[j] = param_update(m->param_trans[j], theta[j], jump(i), m->param_hyper[j]);
         }
     }
 

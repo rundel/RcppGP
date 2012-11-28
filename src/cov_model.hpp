@@ -8,7 +8,7 @@ struct cov_model
     int nmodels;
     int nparams;
     int method;
-    
+
     std::vector<int>            model_nparams;
     std::vector<std::string>    model_names;
     std::vector<int>            model_funcs;
@@ -21,6 +21,11 @@ struct cov_model
     std::vector<int>            param_dists;
     std::vector<int>            param_trans;
     std::vector<arma::vec>      param_hyper;
+
+    int param_nfree;
+    int param_nfixed;
+    
+    arma::uvec param_free_index;    
 
     cov_model(SEXP covModel_r);
     

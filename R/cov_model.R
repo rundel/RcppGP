@@ -93,7 +93,8 @@ cov_model = function(..., method = "addition")
     if (any(param_dists == ""))
         stop("All parameters must have a hyperprior distribution.")
     
-    fix_dist_names = function(y) {
+    fix_dist_names = function(y) 
+    {
         z = list("ig" = "inverse gamma")
 
         y[y %in% names(z)] = sapply( y[y %in% names(z)], function(x) z[[x]])
@@ -127,9 +128,18 @@ cov_model = function(..., method = "addition")
     storage.mode(param_start) = "double"
     stopifnot(length(param_start) == nparams)
 
+    if (any(is.na(param_start)))
+        stop("All parameters must have a starting value.")
+
     param_tuning = sapply(params, function(x) ifelse(is.null(x$tuning), 0, x$tuning))
     storage.mode(param_tuning) = "double"
     stopifnot(length(param_tuning) == nparams)
+
+    if (any(param_tuning < 0))
+        stop("All parameters must have a tuning value > 0.")
+
+    if (any(param_tuning == 0 & param_dists != "fixed"))
+        stop("All non-fixed parameters must have a tuning value > 0.")
 
     #######################################
     # Parameter hyperparameters           #
@@ -141,6 +151,22 @@ cov_model = function(..., method = "addition")
     param_hyper = lapply(params, function(x) as.numeric(x$hyperparams))
     stopifnot(length(param_hyper) == nparams)
     
+    #######################################
+    # Fixed Parameters                    #
+    #######################################
+
+    param_trans[param_trans == "fixed"] = "identity"
+
+    param_nfixed = sum(param_dists == "fixed")
+    param_nfree  = sum(param_dists != "fixed")
+    param_free_index = which(param_dists != "fixed")
+
+    storage.mode(param_nfixed)     = "integer"
+    storage.mode(param_nfree)      = "integer"
+    storage.mode(param_free_index) = "integer"
+
+
+
     return( list(
         nmodels = nmodels,                  # 1x1 Integer - m
         nparams = nparams,                  # 1x1 Integer - p
@@ -155,7 +181,10 @@ cov_model = function(..., method = "addition")
         param_start = param_start,          # px1 Double
         param_tuning = param_tuning,        # px1 Double
         param_nhyper = param_nhyper,        # px1 Integer
-        param_hyper = param_hyper           # px1 of hp x 1 Double
+        param_hyper = param_hyper,          # px1 of hp x 1 Double
+        param_nfixed = param_nfixed,        # fixed params
+        param_nfree = param_nfree,          # free params
+        param_free_index = param_free_index # index of free params
     ))
 }
 
