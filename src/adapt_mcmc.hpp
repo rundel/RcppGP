@@ -26,7 +26,7 @@ public:
         init(tuning_);
     }
 
-    vihola_adapt(Rcpp::List settings)
+    vihola_adapt(Rcpp::List& settings)
     {
         n_adapt = Rcpp::as<int>(settings["n_adapt"]);
         target_accept = Rcpp::as<double>(settings["target_accept"]);
@@ -70,8 +70,9 @@ public:
     {
         if(s < n_adapt)
         {
-            double adapt_rate = std::min(1.0, n * pow(s,-gamma));
+            //arma::mat S_test = arma::chol(S * (arma::eye<arma::mat>(n,n) +  c * U * U.t()) * S.t()).t();
             
+            double adapt_rate = std::min(1.0, n * pow(s,-gamma));            
             double c = adapt_rate*(alpha - target_accept) / arma::dot(U,U);
 
             arma::vec v = sqrt(fabs(c)) * jump;
@@ -106,7 +107,7 @@ public:
         init(tuning_);
     }
 
-    vihola_ind_adapt(Rcpp::List settings)
+    vihola_ind_adapt(Rcpp::List& settings)
     {
         n_adapt = Rcpp::as<int>(settings["n_adapt"]);
         target_accept = Rcpp::as<double>(settings["target_accept"]);
