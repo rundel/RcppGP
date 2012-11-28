@@ -76,73 +76,62 @@ spGLM = function(formula, family="binomial", weights, data = parent.frame(),
     ####################
     ##Coords
     ####################
+    
     if (missing(coords)) 
         stop("error: coords must be specified")
-    if (!is.matrix(coords)) 
-        stop("error: coords must n-by-2 matrix of xy-coordinate locations")
-    if (ncol(coords) != 2 || nrow(coords) != n)
+    
+    coords = as.matrix(coords)
+
+    if (nrow(coords) != n)
         stop("error: either the coords have more than two columns or then number of rows is different than data used in the model formula")
 
-    coords_D = as.matrix(dist(coords))
+    d = ncol(coords)
+
+    if (d < 1)
+        stop("error: coords must be at least 1 dimensional.")
+
+    coords_D = sp_dist(coords)
     storage.mode(coords_D) = "double"
 
     ####################
     ##Knots
     ####################
+
     is_pp = FALSE
-
-
     if (!is.null(knots))
     {
-        if (is.vector(knots) && length(knots) %in% c(2,3))
+        if (is.vector(knots) && length(knots) %in% c(d,d+1))
         {
-          
-            ##allow single knot dim
-            if (knots[1] > 1) {
-                x.knots = seq(min(coords[,1]), max(coords[,1]), length.out=knots[1])
-            } else {
-                x.knots = (max(coords[,1])-min(coords[,1]))/2
+            knot_coords = list()   
+            for(i in 1:d)
+            {
+                if (knots[i] > 1)
+                {
+                    knot_coords[[i]] = seq(min(coords[,i]), max(coords[,i]), length.out=knots[i])
+                    
+                    if (length(knots) == d)
+                        inter = mean(knot_coords[[i]][1:2])
+                    else if (length(knots) == d+1)
+                        inter = knots[d+1]
+
+                    knot_coords[[i]] = seq(min(knot_coords[[i]])-inter, max(knot_coords[[i]])+inter, length.out=knots[i])
+                } 
+                else
+                {
+                    knot_coords[[i]] = (max(coords[,i])-min(coords[,i]))/2
+                }
             }
-            
-            if (knots[2] > 1) {
-                y.knots = seq(min(coords[,2]), max(coords[,2]), length.out=knots[2])
-            } else {
-                y.knots = (max(coords[,2])-min(coords[,2]))/2
-            }
-          
-            ##if not single knot then adjust out half distance on all sides
-            if (length(knots) == 2) {
-                if (knots[1] > 1) {
-                    x.int = (x.knots[2]-x.knots[1])/2
-                    x.knots = seq(min(x.knots)-x.int, max(x.knots)+x.int, length.out=knots[1])
-                }
-            
-                if (knots[2] > 1) {
-                    y.int = (y.knots[2]-y.knots[1])/2
-                    y.knots = seq(min(y.knots)-y.int, max(y.knots)+y.int, length.out=knots[2])
-                }
-            
-                knot_coords = as.matrix(expand.grid(x.knots, y.knots))
-                is_pp = TRUE
-            } else {   
-                if (knots[1] > 1) {
-                    x.int = knots[3]
-                    x.knots = seq(min(x.knots)-x.int, max(x.knots)+x.int, length.out=knots[1])
-                }
-            
-                if (knots[2] > 1) {
-                    y.int = knots[3]
-                    y.knots = seq(min(y.knots)-y.int, max(y.knots)+y.int, length.out=knots[2])
-                }
-            
-                knot_coords = as.matrix(expand.grid(x.knots, y.knots))
-                is_pp = TRUE
-            }
-          
-        } else if (is.matrix(knots) && ncol(knots) == 2) {
+
+            knot_coords = as.matrix(expand.grid(knot_coords))
+            is_pp = TRUE
+        }
+        else if (is.matrix(knots) && ncol(knots) == d)
+        {
             knot_coords = knots
             is_pp = TRUE
-        } else {
+        }
+        else
+        {
             stop("error: knots is misspecified")
         }
     }
@@ -151,21 +140,19 @@ spGLM = function(formula, family="binomial", weights, data = parent.frame(),
     knots_D = matrix()
     coords_knots_D = matrix()
 
-    if (is_pp) {
-        knots_D = as.matrix(dist(knot_coords))
+    if (is_pp) 
+    {
+        knots_D = sp_dist(knot_coords)
+        
         m = nrow(knots_D)
-        coords_knots_D = matrix(0, m, n) ##this is for c^t
-    
-        for (i in 1:n) {
-            coords_knots_D[,i] = sqrt((knot_coords[,1]-coords[i,1])^2+
-                                      (knot_coords[,2]-coords[i,2])^2)
-        }
-
-        storage.mode(modified_pp)    = "logical"
-        storage.mode(m)              = "integer"
-        storage.mode(knots_D)        = "double"
-        storage.mode(coords_knots_D) = "double"
+        coords_knots_D = sp_dist(knot_coords, coords)
     }
+
+    storage.mode(modified_pp)    = "logical"
+    storage.mode(m)              = "integer"
+    storage.mode(knots_D)        = "double"
+    storage.mode(coords_knots_D) = "double"
+
 
     ####################################################
     ##Covariance model
