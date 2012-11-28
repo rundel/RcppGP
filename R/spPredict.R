@@ -1,18 +1,5 @@
-spPredict = function(r, pred_coords, pred_X, start=1, end, thin=1, verbose=TRUE, n_report=100) {
-  
-    ####################################################
-    ##Check for unused args
-    ####################################################
-    
-    #formal_args = names(formals(sys.function(sys.parent())))
-    #elip_args = names(list(...))
-    #
-    #for (i in elip_args) 
-    #{
-    #    if (! i %in% formal_args) 
-    #        warning("'",i, "' is not an argument")
-    #}
-    
+spPredict = function(r, pred_coords, pred_X, start=1, end, thin=1, verbose=TRUE, n_report=100)
+{    
     if (missing(r)) 
         stop("error: spPredict expects r\n")
     
@@ -56,13 +43,7 @@ spPredict = function(r, pred_coords, pred_X, start=1, end, thin=1, verbose=TRUE,
 
     thin = seq(start, end, by=as.integer(thin))
 
-    storage.mode(n_report) = "integer"
-
     obj_class = class(r)
-
-    ##
-    ##prediction
-    ##
     if (obj_class == "spLM" | obj_class == "spGLM")
     {
         if (obj_class == "spLM") r$family = "identity"
