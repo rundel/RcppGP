@@ -1,6 +1,7 @@
 #include <RcppArmadillo.h>
 #include <boost/assign/list_of.hpp>
 #include "transforms.hpp"
+#include "assert.hpp"
 
 
 template <> std::string param_trans_map::name = "transformation";
@@ -28,6 +29,10 @@ template<> double param_update<logit_trans>(double cur, double jump, arma::vec h
 {
     double a = hyperparams(0);
     double b = hyperparams(1);
+
+    RT_ASSERT(a <= cur && cur <= b, "Param value outside bounds.");
+    RT_ASSERT(a != b, "Hyperparameters cannot be equal. Use fixed distribution instead.");
+    
     return logitInv(logit(cur,a,b) + jump, a, b);
 }
 
@@ -54,6 +59,10 @@ template<> double jacobian_adj<logit_trans>(double cur, arma::vec hyperparams)
 {
     double a = hyperparams(0);
     double b = hyperparams(1);
+
+    RT_ASSERT(a <= cur && cur <= b, "Param value outside bounds.");
+    RT_ASSERT(a != b, "Hyperparameters cannot be equal. Use fixed distribution instead.");
+    
     return log(cur-a) + log(b-cur);
 }
 
