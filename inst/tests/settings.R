@@ -8,11 +8,6 @@ d1 = as.matrix( dist(pts1) )
 d2 = as.matrix( dist(pts2) )
 d3 = as.matrix( dist(rbind(pts1,pts2)) )[1:n1,n1+1:n2]
 
-calc_cov = function(m,d,p)
-{
-   .Call("test_calc_cov",m,d,p) 
-}
-
 nug_cov = function(d, p) 
 {   
     tauSq = p[1]

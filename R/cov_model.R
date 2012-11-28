@@ -159,5 +159,10 @@ cov_model = function(..., method = "addition")
     ))
 }
 
+calc_cov = function(m,d,p)
+{
+   .Call("test_calc_cov",m,d,p) 
+}
+
 #cov_model(nugget, exponential, invalid, invalid2, method = "additive")
 #cov_model(nugget, exponential, method = "additive")
