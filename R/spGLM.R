@@ -179,12 +179,9 @@ spGLM = function(formula, family="binomial", weights, data = parent.frame(),
 
     theta = list()
 
-    theta$tuning = as.matrix(cov_model$param_tuning)
-    theta$start = cov_model$param_start
-
-    storage.mode(theta$start) = "double"
-    storage.mode(theta$tuning) = "double"
-
+    theta$start  = cov_model$param_start
+    theta$tuning = as.matrix(cov_model$param_tuning[cov_model$param_free_index])
+    
     ####################################################
     ## beta settings
     #################################################### 
@@ -192,17 +189,13 @@ spGLM = function(formula, family="binomial", weights, data = parent.frame(),
     if (missing(beta))
         stop("error: beta settings must be specified")
 
-    if (is.null(beta$prior))
-        beta$prior = "flat"
+    if (is.null(beta$prior)) beta$prior = "flat"
     stopifnot(beta$prior %in% c("flat","normal"))
     
-    stopifnot(length(beta$start)==p)
-
     beta$tuning = as.matrix(beta$tuning)
+    
+    stopifnot(length(beta$start)==p)
     stopifnot( all(dim(beta$tuning) == c(p,1)) | all(dim(beta$tuning) == c(p,p)) )
-
-    storage.mode(beta$start) = "double"
-    storage.mode(beta$tuning) = "double"
 
     if (beta$prior == "normal") {
         if(is.null(beta$hyperparam)) stop("Hyperparameters must be specified if beta has a normal prior.")
@@ -226,13 +219,10 @@ spGLM = function(formula, family="binomial", weights, data = parent.frame(),
     if (length(w$start) == 1)  w$start  = rep(w$start,n)
     if (length(w$tuning) == 1) w$tuning = rep(w$tuning,n)
 
-    stopifnot(length(w$start)==n)
-    
     w$tuning = as.matrix(w$tuning)
-    stopifnot( all(dim(w$tuning) == c(n,1)) | all(dim(w$tuning) == c(n,n)) )
 
-    storage.mode(w$start) = "double"
-    storage.mode(w$tuning) = "double"
+    stopifnot(length(w$start)==n)
+    stopifnot( all(dim(w$tuning) == c(n,1)) | all(dim(w$tuning) == c(n,n)) )
 
     ####################################################
     ## ws settings
@@ -247,13 +237,10 @@ spGLM = function(formula, family="binomial", weights, data = parent.frame(),
     if (length(w_star$start) == 1)  w_star$start  = rep(w_star$start,m)
     if (length(w_star$tuning) == 1) w_star$tuning = rep(w_star$tuning,m)
 
-    stopifnot(length(w_star$start)==m)
-    
     w_star$tuning = as.matrix(w_star$tuning)
+    
+    stopifnot(length(w_star$start)==m)
     stopifnot( all(dim(w_star$tuning) == c(m,1)) | all(dim(w_star$tuning) == c(m,m)) )
-
-    storage.mode(w_star$start) = "double"
-    storage.mode(w_star$tuning) = "double"
 
     ####################################################
     ## e settings
@@ -268,13 +255,10 @@ spGLM = function(formula, family="binomial", weights, data = parent.frame(),
     if (length(e$start) == 1)  e$start  = rep(e$start,n)
     if (length(e$tuning) == 1) e$tuning = rep(e$tuning,n)
             
-    stopifnot(length(e$start)==n)
-    
     e$tuning = as.matrix(e$tuning)
+    
+    stopifnot(length(e$start)==n)
     stopifnot( all(dim(e$tuning) == c(n,1)) | all(dim(e$tuning) == c(n,n)) )
-
-    storage.mode(e$start) = "double"
-    storage.mode(e$tuning) = "double"
 
     ####################################################
     ## Adopt default adaptation params for beta, w, ws, and e 
@@ -289,6 +273,8 @@ spGLM = function(formula, family="binomial", weights, data = parent.frame(),
         storage.mode(x$n_adapt) = "integer"
         storage.mode(x$target_accept) = "double"
         storage.mode(x$gamma) = "double"
+        storage.mode(x$start) = "double"
+        storage.mode(x$tuning) = "double"
 
         return(x)
     } 
