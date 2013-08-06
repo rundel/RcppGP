@@ -1,0 +1,18 @@
+#!/bin/sh
+
+# Cleans up after the auxiliary files that were created when installing
+# the magma package
+#
+echo "Cleaning up existing compiled code..."
+
+for f in config.log config.status config.cache ; do
+  if test -w $f ; then
+    rm -f $f
+  fi
+done
+
+cd src
+rm -f *.o
+rm -f *.so
+#rm -f Makevars
+

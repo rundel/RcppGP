@@ -1,0 +1,34 @@
+#
+#
+
+BIN               := RcppGP.so
+
+# compilers
+NVCC              := @NVCC@
+#CXX              := @CXX@
+
+# flags
+LIBS              := @LIBS@ $(RCPP_LIBS)
+LDFLAGS           := @LDFLAGS@
+CPPFLAGS          := @CPPFLAGS@ -I../include
+NCFLAGS           := @NCFLAGS@ -I../include
+
+# files
+CPP_SOURCES       := $(wildcard *.cpp)
+CU_SOURCES        := @CU_FILES@
+CPP_OBJS          := $(patsubst %.cpp, %.o, $(CPP_SOURCES))
+CU_OBJS           := $(patsubst %.cu, %.o, $(CU_SOURCES))
+
+$(BIN): $(CU_OBJS) $(CPP_OBJS)
+		$(CXX) -shared -o $@ $(CU_OBJS) $(CPP_OBJS) $(LDFLAGS) $(LIBS)
+
+%.o: %.cpp
+		$(CXX) $(CPPFLAGS) -c $< -o $@
+
+%.o: %.cu
+		$(NVCC) $(NCFLAGS) -c $< -o $@
+
+all: $(BIN) 
+
+clean:
+		rm -f *.o
