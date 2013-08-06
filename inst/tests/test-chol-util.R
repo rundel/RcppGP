@@ -33,18 +33,18 @@ for(n in c(10,100,1000))#,2500))
             down_chol = try(t(chol(M - vv)), TRUE)
 
             if (class(up_chol) != "try-error") {
-                up = .Call("chol_update_test",L,v,PACKAGE="tsBayes")
+                up = .Call("chol_update_test",L,v,PACKAGE="RcppGP")
                 expect_true(abs(sum(up-up_chol)) < 1e-9)
             } else {
-                expect_error(.Call("chol_update_test",L,v,PACKAGE="tsBayes"))
+                expect_error(.Call("chol_update_test",L,v,PACKAGE="RcppGP"))
                 n_up_err = n_up_err + 1
             }
 
             if (class(down_chol) != "try-error") {
-                down = .Call("chol_downdate_test",L,v,PACKAGE="tsBayes")
+                down = .Call("chol_downdate_test",L,v,PACKAGE="RcppGP")
                 expect_true(abs(sum(down-down_chol)) < 1e-9)
             } else {
-                expect_error(.Call("chol_downdate_test",L,v,PACKAGE="tsBayes"))
+                expect_error(.Call("chol_downdate_test",L,v,PACKAGE="RcppGP"))
                 n_up_err = n_up_err + 1
             }
         }
