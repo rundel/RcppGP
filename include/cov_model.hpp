@@ -1,13 +1,12 @@
 #ifndef COV_MODEL_HPP
 #define COV_MODEL_HPP
 
-#include <RcppArmadillo.h>
+#include "gpu_mat.hpp"
 
 struct cov_model 
 {
     int nmodels;
     int nparams;
-    int method;
 
     std::vector<int>            model_nparams;
     std::vector<std::string>    model_names;
@@ -29,10 +28,18 @@ struct cov_model
 
     cov_model(SEXP covModel_r);
     
-    arma::mat calc_cov(arma::mat const& d, arma::vec const& params);
-    template<int i> arma::mat calc_cov(arma::mat const& d, arma::vec const& params);
+    arma::mat calc_cov(arma::mat const& d, arma::vec const& params) const;
+    arma::mat calc_inv_cov(arma::mat const& d, arma::vec const& params) const;
+    
+#ifdef USE_GPU
+    arma::mat calc_cov_gpu(gpu_mat const& d, arma::vec const& params) const;
+    double*   calc_cov_gpu_ptr(gpu_mat const& d, arma::vec const& params) const;
+    
+    arma::mat calc_inv_cov_gpu(gpu_mat const& d, arma::vec const& params) const;
+    double* calc_inv_cov_gpu_ptr(gpu_mat const& d, arma::vec const& params) const;
+#endif    
+
 };
 
-RcppExport SEXP test_calc_cov(SEXP model, SEXP dist, SEXP params);
 
 #endif

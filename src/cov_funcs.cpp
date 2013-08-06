@@ -8,7 +8,8 @@
 template <> std::string
 cov_func_map::name = "covariance function";
 template <> std::map<std::string, int> 
-cov_func_map::map = boost::assign::map_list_of("nugget"              , nugget_cov)
+cov_func_map::map = boost::assign::map_list_of("noop"                , noop)
+                                              ("nugget"              , nugget_cov)
                                               ("constant"            , const_cov)
                                               ("exponential"         , exp_cov)
                                               ("gaussian"            , gauss_cov)
@@ -22,7 +23,8 @@ cov_func_map::map = boost::assign::map_list_of("nugget"              , nugget_co
 template <> std::string
 cov_func_nparams::name = "covariance function";
 template <> std::map<int, int>
-cov_func_nparams::map = boost::assign::map_list_of(nugget_cov,       1)
+cov_func_nparams::map = boost::assign::map_list_of(noop,             1)
+                                                  (nugget_cov,       1)
                                                   (const_cov,        1)
                                                   (exp_cov,          2)
                                                   (gauss_cov,        2)
@@ -61,7 +63,7 @@ template<> arma::mat cov_func<nugget_cov>(arma::mat const& d, arma::vec const& p
     } else {
         res = arma::zeros<arma::mat>(d.n_rows, d.n_cols);
         arma::uvec idx = arma::find(d == 0.0);
-        res.elem(idx) = arma::zeros<arma::vec>(idx.n_elem);
+        res.elem(idx) = tauSq * arma::ones<arma::vec>(idx.n_elem);
     }
 
     return res;
@@ -239,8 +241,30 @@ arma::mat cov_func(int type, arma::mat const& d, arma::vec const& params)
     else if (type == rq_cov)           return cov_func<rq_cov>(d,params);
     else if (type == periodic_cov)     return cov_func<periodic_cov>(d,params);
     else if (type == periodic_exp_cov) return cov_func<periodic_exp_cov>(d,params);
-    else    RT_ASSERT(false, "Unknown covariance function.");
+    else if (type == noop)             return arma::zeros<arma::mat>(d.n_rows, d.n_cols);
+    else    {RT_ASSERT(false, "Unknown covariance function.");}
 
     return arma::mat();
 }
 
+#ifdef USE_GPU
+
+void cov_func_gpu(int type, double* d, double* cov, int n, int m, int n_threads, arma::vec const& p)
+{   
+    RT_ASSERT(cov_func_nparams::value(type) == p.n_elem, "Incorrect number of parameters.");
+
+    if      (type == nugget_cov)       nugget_cov_gpu(d, cov, n, m, p(0), n_threads);
+    else if (type == const_cov)        constant_cov_gpu(d, cov, n, m, p(0), n_threads);
+    else if (type == exp_cov)          exponential_cov_gpu(d, cov, n, m, p(0), p(1), n_threads);
+    else if (type == gauss_cov)        gaussian_cov_gpu(d, cov, n, m, p(0), p(1), n_threads);
+    else if (type == powexp_cov)       powered_exponential_cov_gpu(d, cov, n, m, p(0), p(1), p(2), n_threads);
+    else if (type == sphere_cov)       spherical_cov_gpu(d, cov, n, m, p(0), p(1), n_threads);
+    else if (type == rq_cov)           rational_quadratic_cov_gpu(d, cov, n, m, p(0), p(1), p(2), n_threads);
+    else if (type == periodic_cov)     periodic_cov_gpu(d, cov, n, m, p(0), p(1), p(2), n_threads);
+    else if (type == periodic_exp_cov) exp_periodic_cov_gpu(d, cov, n, m, p(0), p(1), p(2), p(3), n_threads);
+    else if (type == noop)             {/* NOOP */}
+    else if (type == matern_cov)       {RT_ASSERT(false, "Matern is currently unsupported on the GPU.");}
+    else                               {RT_ASSERT(false, "Unknown covariance function.");}
+}
+
+#endif

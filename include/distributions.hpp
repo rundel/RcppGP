@@ -2,14 +2,8 @@
 #define DISTRIBUTIONS_HPP
 
 #include "enum_util.hpp"
+#include "enums.hpp"
 
-enum param_dists 
-{
-    fixed_dist,
-    uniform_dist, 
-    invgamma_dist, 
-    normal_dist
-}; 
 typedef enum_map<param_dists> param_dists_map;
 RcppExport SEXP valid_param_dists();
 

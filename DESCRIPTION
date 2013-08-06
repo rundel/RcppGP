@@ -1,11 +1,11 @@
-Package: tsBayes
+Package: RcppGP
 Type: Package
-Title: What the package does (short line)
-Version: 0.0
-Date: 2012-10-18
-Author: Who wrote it
-Maintainer: Who to complain to <yourfault@somewhere.net>
+Title: Tools for efficiently handling calculations use in evaluating Gaussian processes in C++.
+Version: 0.1
+Date: 2013-7-29
+Author: Colin Rundel
+Maintainer: Colin Rundel <rundel@gmail.com>
 Description: More about what it does (maybe more than one line)
 License: What license is it under?
-Depends: Rcpp (>= 0.9.15), RcppArmadillo (>= 0.3.4.3), coda
+Depends: Rcpp (>= 0.10.4), RcppArmadillo (>= 0.3.900.0)
 LinkingTo: Rcpp, RcppArmadillo

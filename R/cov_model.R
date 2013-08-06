@@ -1,24 +1,12 @@
 
-cov_model = function(..., method = "addition") 
+cov_model = function(...) 
 {
-    valid_methods = valid_cov_methods()
     valid_funcs   = valid_cov_funcs()
     valid_dists   = valid_param_dists()
     valid_trans   = valid_param_trans()
 
     covs = list(...)
     nmodels = length(covs)
-
-    ######################################
-    # Cov model aggregation method       #
-    ######################################
-
-    if (length(method) != 1) 
-        stop("method must be of length 1.")
-    m = charmatch(method, valid_methods, nomatch=0)
-    method = valid_methods[m]
-    if (m==0) 
-        stop("unknown method: \"",method,"\"" ) 
     
     ######################################
     # Cov model funcs                    #
@@ -170,7 +158,6 @@ cov_model = function(..., method = "addition")
     return( list(
         nmodels = nmodels,                  # 1x1 Integer - m
         nparams = nparams,                  # 1x1 Integer - p
-        method = method,                    # 1x1 String
         model_funcs = model_funcs,          # mx1 String
         model_names = model_names,          # mx1 String
         model_nparams = model_nparams,      # mx1 Integer
@@ -190,8 +177,63 @@ cov_model = function(..., method = "addition")
 
 calc_cov = function(m,d,p)
 {
-   .Call("test_calc_cov",m,d,p) 
+   .Call("test_calc_cov",m,d,p,"RcppGP") 
 }
 
-#cov_model(nugget, exponential, invalid, invalid2, method = "additive")
-#cov_model(nugget, exponential, method = "additive")
+calc_inv_cov = function(m,d,p)
+{
+   .Call("test_calc_inv_cov",m,d,p) 
+}
+
+calc_chol_cov = function(m,d,p)
+{
+   .Call("test_calc_chol_cov",m,d,p) 
+}
+
+calc_cov_gpu = function(m,d,p)
+{
+   .Call("test_calc_cov_gpu",m,d,p) 
+}
+
+calc_inv_cov_gpu = function(m,d,p)
+{
+   .Call("test_calc_inv_cov_gpu",m,d,p) 
+}
+
+calc_chol_cov_gpu = function(m,d,p)
+{
+   .Call("test_calc_chol_cov_gpu",m,d,p) 
+}
+
+benchmark_cov = function(m,d,p,n)
+{
+   .Call("benchmark_calc_cov",m,d,p,n,"RcppGP") 
+}
+
+benchmark_inv_cov = function(m,d,p,n)
+{
+   .Call("benchmark_calc_inv_cov",m,d,p,n) 
+}
+
+benchmark_chol_cov = function(m,d,p,n)
+{
+   .Call("benchmark_calc_chol_cov",m,d,p,n) 
+}
+
+benchmark_cov_gpu = function(m,d,p,n)
+{
+   .Call("benchmark_calc_cov_gpu",m,d,p,n) 
+}
+
+benchmark_inv_cov_gpu = function(m,d,p,n)
+{
+   .Call("benchmark_calc_inv_cov_gpu",m,d,p,n) 
+}
+
+benchmark_chol_cov_gpu = function(m,d,p,n)
+{
+   .Call("benchmark_calc_chol_cov_gpu",m,d,p,n) 
+}
+
+#cov_model(nugget, exponential, invalid, invalid2)
+#cov_model(nugget, exponential)

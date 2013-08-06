@@ -297,7 +297,7 @@ spGLM = function(formula, family="binomial", weights, data = parent.frame(),
                 is_pp, modified_pp, 
                 n_samples, verbose, n_report,
                 n_adapt, target_accept, gamma,
-                PACKAGE="tsBayes")  
+                PACKAGE="RcppGP")  
     
     
     

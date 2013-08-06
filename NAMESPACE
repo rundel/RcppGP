@@ -1,2 +1,2 @@
-useDynLib(tsBayes)
+useDynLib(RcppGP)
 exportPattern("^[[:alpha:]]+")

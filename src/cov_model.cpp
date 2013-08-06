@@ -1,12 +1,23 @@
 #include <RcppArmadillo.h>
 
+#include <boost/timer/timer.hpp>
+
 #include "assert.hpp"
 #include "cov_model.hpp"
 #include "cov_funcs.hpp"
-#include "cov_method.hpp"
 #include "distributions.hpp"
 #include "transforms.hpp"
 
+
+#ifdef USE_GPU
+
+#include <magma.h>
+
+#include "gpu_mat.hpp"
+#include "gpu_util.hpp"
+#include "init.hpp"
+
+#endif
 
 cov_model::cov_model(SEXP covModel_r)
 {
@@ -14,8 +25,6 @@ cov_model::cov_model(SEXP covModel_r)
 
     nmodels = Rcpp::as<int>(cov_model_opts["nmodels"]);
     nparams = Rcpp::as<int>(cov_model_opts["nparams"]);
-    
-    method = cov_method_map::from_string( Rcpp::as<std::string>(cov_model_opts["method"]) );
 
     model_nparams = Rcpp::as<std::vector<int> >(cov_model_opts["model_nparams"]);
     model_names = Rcpp::as<std::vector<std::string> >(cov_model_opts["model_names"]);
@@ -51,9 +60,11 @@ cov_model::cov_model(SEXP covModel_r)
 
 }
 
-template<>
-arma::mat cov_model::calc_cov<add_method>(arma::mat const& d, arma::vec const& params)
+
+arma::mat cov_model::calc_cov(arma::mat const& d, arma::vec const& params) const
 {
+    RT_ASSERT(nparams == params.n_elem, "Number of given parameters does not match the number expected.");
+    
     arma::mat cov = arma::zeros<arma::mat>(d.n_rows, d.n_cols);
 
     for (int i=0; i != nmodels; ++i)
@@ -67,40 +78,73 @@ arma::mat cov_model::calc_cov<add_method>(arma::mat const& d, arma::vec const& p
     return cov;
 }
 
-template<>
-arma::mat cov_model::calc_cov<prod_method>(arma::mat const& d, arma::vec const& params)
+arma::mat cov_model::calc_inv_cov(arma::mat const& d, arma::vec const& params) const
 {
-    arma::mat cov = arma::ones<arma::mat>(d.n_rows, d.n_cols);
-                      
+    return arma::inv(arma::sympd(calc_cov(d, params)));
+}
+
+#ifdef USE_GPU
+
+double* cov_model::calc_cov_gpu_ptr(gpu_mat const& d, arma::vec const& params) const
+{
+    RT_ASSERT(nparams == params.n_elem, "Number of given parameters does not match the number expected.");
+
+    int m = d.n_rows;
+    int n = d.n_cols;
+
+    gpu_mat cov(m,n,0.0);
+
     for (int i=0; i != nmodels; ++i)
     {
         arma::vec mparams = params.elem( model_params[i] );
         int type = model_funcs[i];
 
-        cov = cov % cov_func(type,d,mparams);
+        cov_func_gpu(type, d.mat, cov.mat, m, n, 64, mparams);
     }
 
-    return cov;
+    return cov.get_ptr();
 }
 
-arma::mat cov_model::calc_cov(arma::mat const& d, arma::vec const& params)
+arma::mat cov_model::calc_cov_gpu(gpu_mat const& d, arma::vec const& params) const
+{
+    int m = d.n_rows;
+    int n = d.n_cols;
+
+    gpu_mat cov( calc_cov_gpu_ptr(d, params), m, n );
+
+    return cov.get_mat();
+}
+
+double* cov_model::calc_inv_cov_gpu_ptr(gpu_mat const& d, arma::vec const& params) const
 {
     RT_ASSERT(nparams == params.n_elem, "Number of given parameters does not match the number expected.");
+    RT_ASSERT(d.n_rows == d.n_cols, "Cannot invert non-square covariance matrix.");
 
-    if      (method == add_method ) return calc_cov<add_method>(d, params);
-    else if (method == prod_method) return calc_cov<prod_method>(d, params);
-    else    throw std::range_error("Unknown covariance model construction method.");
-}
+    int n = d.n_rows;
+      
+    gpu_mat A(n,n,0.0);
 
-SEXP test_calc_cov(SEXP model, SEXP dist, SEXP params)
+    for (int i=0; i != nmodels; ++i)
+    {
+        arma::vec mparams = params.elem( model_params[i] );
+        int type = model_funcs[i];
+
+        cov_func_gpu(type, d.mat, A.mat, n, n, 64, mparams);
+    }
+
+    inv_sympd(A);
+
+    return A.get_ptr();
+} 
+
+arma::mat cov_model::calc_inv_cov_gpu(gpu_mat const& d, arma::vec const& params) const
 {
-BEGIN_RCPP
+    int m = d.n_rows;
+    int n = d.n_cols;
 
-    cov_model m(model);
-    arma::mat d = Rcpp::as<arma::mat>(dist);
-    arma::vec p = Rcpp::as<arma::vec>(params);
+    gpu_mat cov( calc_inv_cov_gpu_ptr(d, params), m, n );
 
-    return Rcpp::wrap(m.calc_cov(d,p));
-
-END_RCPP
+    return cov.get_mat();
 }
+
+#endif

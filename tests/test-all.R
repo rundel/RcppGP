@@ -1,4 +1,4 @@
 library(testthat)
-library(tsBayes)
+library(RcppGP)
 
-test_package("tsBayes")
+test_package("RcppGP")
