@@ -7,12 +7,12 @@ template<class E> struct enum_map
     static map_type map;
     static std::string name;
 
-    static E from_string(std::string const& str) 
+    static E from_string(std::string const& str)
     {
         typename map_type::const_iterator res = map.find(str);
         if (res == map.end())
             throw std::runtime_error("Unknown " + name + " type: " + str + ".");
-    
+
         return static_cast<E>(res->second);
     }
 
@@ -33,12 +33,12 @@ template<class P> struct enum_property
     static map_type map;
     static std::string name;
 
-    static P value(int e) 
+    static P value(int e)
     {
         typename map_type::const_iterator res = map.find(e);
         if (res == map.end())
             throw std::runtime_error("Unknown " + name + " type.");
-    
+
         return res->second;
     }
 };

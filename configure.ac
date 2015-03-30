@@ -32,38 +32,46 @@ else
     else
         R_INCLUDE="-I${R_INCLUDE}"
     fi
-    
+
     if test -z "${R_LIB}"; then
         R_LIB=`"${R_HOME}/bin/R" CMD config --ldflags`
     else
         R_LIB="-L${R_LIB} -lR"
     fi
-    
+
     RCPPARMA_FLAGS=`${R_HOME}/bin/Rscript -e "RcppArmadillo:::CxxFlags()"`
     RCPP_FLAGS=`${R_HOME}/bin/Rscript -e "Rcpp:::CxxFlags()"`
     RCPP_LIBS=`${R_HOME}/bin/Rscript -e "Rcpp:::LdFlags()"`
-    
+
     R_BLAS=`"${R_HOME}/bin/R" CMD config BLAS_LIBS`
     R_LAPACK=`"${R_HOME}/bin/R" CMD config LAPACK_LIBS`
-    
-    R_CPPFLAGS=`"${R_HOME}/bin/R" CMD config CXXFLAGS` 
-    
+
+    R_CPPFLAGS=`"${R_HOME}/bin/R" CMD config CXXFLAGS`
+
     CPPFLAGS+=" ${R_INCLUDE} ${R_CPPFLAGS} ${RCPP_FLAGS} ${RCPPARMA_FLAGS}"
     LIBS+=" ${R_LIB} ${RCPP_LIBS} ${R_BLAS} ${R_LAPACK}"
 fi
 
 #################### Boost Stuff ####################
 
+AC_ARG_WITH(
+    [boost-home],
+    [AC_HELP_STRING([--with-boost-home=DIR],[full path to BOOST installation @<:@/usr/local@:>@])],
+    [BOOST_HOME="$withval"],
+    [BOOST_HOME=/usr/local]
+)
+AC_MSG_RESULT([setting BOOST home directory to ${BOOST_HOME}])
 
-BOOST_REQUIRE
-
+BOOST_INC=${BOOST_HOME}/include
+AC_MSG_CHECKING([for BOOST headers])
+AC_CHECK_FILE(
+    [${BOOST_INC}/boost/timer.hpp],
+    [BOOST_CPPFLAGS="-I${BOOST_INC}"],
+    [AC_MSG_ERROR([Unable to find BOOST timer.hpp header])]
+)
 CPPFLAGS+=" ${BOOST_CPPFLAGS}"
 
-
-BOOST_IOSTREAMS
-
-LDFLAGS+=" ${BOOST_IOSTREAMS_LDFLAGS} -lz -lboost_timer"
-LIBS+=" ${BOOST_IOSTREAMS_LIBS}"
+LDFLAGS+=" -lboost_timer -lboost_system"
 
 #################### Defaults     ####################
 
@@ -98,7 +106,7 @@ AC_CHECK_FILE(
 CUDA_LIBS="-lcudart -lcublas"
 AC_MSG_CHECKING([whether this is a 64-bit version of CUDA])
 AC_CHECK_FILE(
-    [${CUDA_HOME}/lib64/libcublas.so], 
+    [${CUDA_HOME}/lib64/libcublas.so],
     [CUDA_LDFLAGS="-L${CUDA_HOME}/lib64"],
     [CUDA_LDFLAGS="-L${CUDA_HOME}/lib"]
 )
@@ -134,7 +142,7 @@ if test "${USE_MAGMA}" == "yes"; then
     LIBS+=" ${CUDA_LIBS} -lmagma"
     CU_FILES="\$(wildcard *.cu)"
     NCFLAGS="-arch=sm_20 -O2 -Xcompiler \"-O2 -fPIC\""
-    
+
 else
     AC_MSG_RESULT([Unable to locate magma library / headers, compiling without gpu support])
 fi

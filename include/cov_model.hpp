@@ -3,7 +3,7 @@
 
 #include "gpu_mat.hpp"
 
-struct cov_model 
+struct cov_model
 {
     int nmodels;
     int nparams;
@@ -12,8 +12,8 @@ struct cov_model
     std::vector<std::string>    model_names;
     std::vector<int>            model_funcs;
     std::vector<arma::uvec>     model_params;
-    
-    std::vector<std::string>    param_names;        
+
+    std::vector<std::string>    param_names;
     arma::vec                   param_start;
     arma::vec                   param_tuning;
     std::vector<int>            param_nhyper;
@@ -23,22 +23,19 @@ struct cov_model
 
     int param_nfree;
     int param_nfixed;
-    
-    arma::uvec param_free_index;    
 
-    cov_model(SEXP covModel_r);
-    
+    arma::uvec param_free_index;
+
+    cov_model(Rcpp::List model);
+
     arma::mat calc_cov(arma::mat const& d, arma::vec const& params) const;
     arma::mat calc_inv_cov(arma::mat const& d, arma::vec const& params) const;
-    
-#ifdef USE_GPU
+
     arma::mat calc_cov_gpu(gpu_mat const& d, arma::vec const& params) const;
     double*   calc_cov_gpu_ptr(gpu_mat const& d, arma::vec const& params) const;
-    
+
     arma::mat calc_inv_cov_gpu(gpu_mat const& d, arma::vec const& params) const;
     double* calc_inv_cov_gpu_ptr(gpu_mat const& d, arma::vec const& params) const;
-#endif    
-
 };
 
 

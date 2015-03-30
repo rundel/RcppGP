@@ -1,6 +1,3 @@
-#
-#
-
 BIN               := RcppGP.so
 
 # compilers

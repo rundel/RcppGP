@@ -3,20 +3,12 @@
 #include <boost/timer/timer.hpp>
 
 #include "gpu_mat.hpp"
-#include "benchmark_cov.hpp"
 #include "cov_model.hpp"
 
-SEXP benchmark_calc_cov(SEXP model, SEXP dist, SEXP params, SEXP n_rep)
+// [[Rcpp::export]]
+double benchmark_calc_cov(Rcpp::List model, arma::mat d, arma::vec p, int n, bool gpu = false)
 {
-BEGIN_RCPP
-
     cov_model m(model);
-    arma::mat d = Rcpp::as<arma::mat>(dist);
-    arma::vec p = Rcpp::as<arma::vec>(params);
-
-    int n = Rcpp::as<int>(n_rep);
-
-    int x = 0;
 
     arma::running_stat<double> rs;
 
@@ -24,30 +16,28 @@ BEGIN_RCPP
     for(int i=0; i<n; ++i)
     {
         timer.start();
-        arma::mat res = m.calc_cov(d,p);
-        timer.stop();
 
-        x+=res.n_elem;
+        arma::mat res;
+        if (gpu)
+        {
+            gpu_mat g(d);
+            res = m.calc_cov_gpu(g,p);
+        }
+        else
+            res = m.calc_cov(d,p);
+
+        timer.stop();
 
         rs( timer.elapsed().wall / 1000000000.0L );
     }
 
-    return Rcpp::wrap(rs.mean());
-
-END_RCPP
+    return rs.mean();
 }
 
-SEXP benchmark_calc_inv_cov(SEXP model, SEXP dist, SEXP params, SEXP n_rep)
+// [[Rcpp::export]]
+double benchmark_calc_inv_cov(Rcpp::List model, arma::mat d, arma::vec p, int n, bool gpu = false)
 {
-BEGIN_RCPP
-
     cov_model m(model);
-    arma::mat d = Rcpp::as<arma::mat>(dist);
-    arma::vec p = Rcpp::as<arma::vec>(params);
-
-    int n = Rcpp::as<int>(n_rep);
-
-    int x = 0;
 
     arma::running_stat<double> rs;
 
@@ -55,62 +45,29 @@ BEGIN_RCPP
     for(int i=0; i<n; ++i)
     {
         timer.start();
-        arma::mat res = m.calc_inv_cov(d,p);
-        timer.stop();
 
-        x+=res.n_elem;
+        arma::mat res;
+        if (gpu)
+        {
+            gpu_mat g(d);
+            res = m.calc_inv_cov_gpu(g,p);
+        }
+        else
+            res = m.calc_inv_cov(d,p);
+
+        timer.stop();
 
         rs( timer.elapsed().wall / 1000000000.0L );
     }
 
-    return Rcpp::wrap(rs.mean());
-
-END_RCPP
-}
-
-SEXP benchmark_calc_chol_cov(SEXP model, SEXP dist, SEXP params, SEXP n_rep)
-{
-BEGIN_RCPP
-
-    cov_model m(model);
-    arma::mat d = Rcpp::as<arma::mat>(dist);
-    arma::vec p = Rcpp::as<arma::vec>(params);
-
-    int n = Rcpp::as<int>(n_rep);
-
-    int x = 0;
-
-    arma::running_stat<double> rs;
-
-    boost::timer::cpu_timer timer;
-    for(int i=0; i<n; ++i)
-    {
-        timer.start();
-        arma::mat res = arma::chol(m.calc_cov(d,p));
-        timer.stop();
-
-        x+=res.n_elem;
-
-        rs( timer.elapsed().wall / 1000000000.0L );
-    }
-
-    return Rcpp::wrap(rs.mean());
-
-END_RCPP
+    return rs.mean();
 }
 
 
-SEXP benchmark_calc_cov_gpu(SEXP model, SEXP dist, SEXP params, SEXP n_rep)
+// [[Rcpp::export]]
+double benchmark_calc_chol_cov(Rcpp::List model, arma::mat d, arma::vec p, int n, bool gpu = false)
 {
-BEGIN_RCPP
-
     cov_model m(model);
-    gpu_mat d( Rcpp::as<arma::mat>(dist) );
-    arma::vec p = Rcpp::as<arma::vec>(params);
-
-    int n = Rcpp::as<int>(n_rep);
-
-    int x = 0;
 
     arma::running_stat<double> rs;
 
@@ -118,80 +75,23 @@ BEGIN_RCPP
     for(int i=0; i<n; ++i)
     {
         timer.start();
-        arma::mat res = m.calc_cov_gpu(d,p);
-        timer.stop();
+        arma::mat res;
 
-        x+=res.n_elem;
+        if (gpu)
+        {
+            gpu_mat cov(m.calc_cov_gpu_ptr(d,p), d.n_rows, d.n_cols);
+            cov.chol('U');
+            res = cov.get_mat();
+        }
+        else
+        {
+            res = arma::chol(m.calc_cov(d,p));
+        }
+
+        timer.stop();
 
         rs( timer.elapsed().wall / 1000000000.0L );
     }
 
-    return Rcpp::wrap(rs.mean());
-
-END_RCPP
-}
-
-SEXP benchmark_calc_inv_cov_gpu(SEXP model, SEXP dist, SEXP params, SEXP n_rep)
-{
-BEGIN_RCPP
-
-    cov_model m(model);
-    gpu_mat d( Rcpp::as<arma::mat>(dist) );
-    arma::vec p = Rcpp::as<arma::vec>(params);
-
-    int n = Rcpp::as<int>(n_rep);
-
-    int x = 0;
-
-    arma::running_stat<double> rs;
-
-    boost::timer::cpu_timer timer;
-    for(int i=0; i<n; ++i)
-    {
-        timer.start();
-        arma::mat res = m.calc_inv_cov_gpu(d,p);
-        timer.stop();
-
-        x+=res.n_elem;
-
-        rs( timer.elapsed().wall / 1000000000.0L );
-    }
-
-    return Rcpp::wrap(rs.mean());
-
-END_RCPP
-}
-
-
-SEXP benchmark_calc_chol_cov_gpu(SEXP model, SEXP dist, SEXP params, SEXP n_rep)
-{
-BEGIN_RCPP
-
-    cov_model m(model);
-    arma::mat d = Rcpp::as<arma::mat>(dist);
-    arma::vec p = Rcpp::as<arma::vec>(params);
-
-    int n = Rcpp::as<int>(n_rep);
-
-    int x = 0;
-
-    arma::running_stat<double> rs;
-
-    boost::timer::cpu_timer timer;
-    for(int i=0; i<n; ++i)
-    {
-        timer.start();
-        gpu_mat cov(m.calc_cov_gpu_ptr(d,p), d.n_rows, d.n_cols);
-        chol(cov, 'U');
-        arma::mat res = cov.get_mat();
-        timer.stop();
-
-        x+=res.n_elem;
-
-        rs( timer.elapsed().wall / 1000000000.0L );
-    }
-
-    return Rcpp::wrap(rs.mean());
-
-END_RCPP
+    return rs.mean();
 }

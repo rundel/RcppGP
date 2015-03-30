@@ -2,8 +2,8 @@
 cov_model = function(...) 
 {
     valid_funcs   = valid_cov_funcs()
-    valid_dists   = valid_param_dists()
-    valid_trans   = valid_param_trans()
+    #valid_dists   = valid_param_dists()
+    #valid_trans   = valid_param_trans()
 
     covs = list(...)
     nmodels = length(covs)
@@ -74,84 +74,84 @@ cov_model = function(...)
     # Parameter hyperprior distributions #
     ######################################
 
-    param_dists = tolower(sapply(params, function(x) ifelse(is.null(x$dist), "", x$dist)))
-    storage.mode(param_dists) = "character"
-    stopifnot(length(param_dists) == nparams)
+    # param_dists = tolower(sapply(params, function(x) ifelse(is.null(x$dist), "", x$dist)))
+    # storage.mode(param_dists) = "character"
+    # stopifnot(length(param_dists) == nparams)
 
-    if (any(param_dists == ""))
-        stop("All parameters must have a hyperprior distribution.")
+    # if (any(param_dists == ""))
+    #     stop("All parameters must have a hyperprior distribution.")
     
-    fix_dist_names = function(y) 
-    {
-        z = list("ig" = "inverse gamma")
+    # fix_dist_names = function(y) 
+    # {
+    #     z = list("ig" = "inverse gamma")
 
-        y[y %in% names(z)] = sapply( y[y %in% names(z)], function(x) z[[x]])
-        return(y)   
-    }
+    #     y[y %in% names(z)] = sapply( y[y %in% names(z)], function(x) z[[x]])
+    #     return(y)   
+    # }
     
-    param_dists = fix_dist_names(param_dists)
-    d = charmatch(param_dists,valid_dists, nomatch=0)
-    if (any(d==0)) 
-        stop("unknown hyperprior distibution(s): ",paste0( unique(param_dists[d==0]),collapse=', '),".")
-    param_dists = valid_dists[d]
+    # param_dists = fix_dist_names(param_dists)
+    # d = charmatch(param_dists,valid_dists, nomatch=0)
+    # if (any(d==0)) 
+    #     stop("unknown hyperprior distibution(s): ",paste0( unique(param_dists[d==0]),collapse=', '),".")
+    # param_dists = valid_dists[d]
 
     ######################################
     # Parameter transformations          #
     ######################################
 
-    param_trans = tolower(sapply(params, function(x) ifelse(is.null(x$trans), "identity", x$trans)))
-    storage.mode(param_trans) = "character"
-    stopifnot(length(param_trans) == nparams)
+    # param_trans = tolower(sapply(params, function(x) ifelse(is.null(x$trans), "identity", x$trans)))
+    # storage.mode(param_trans) = "character"
+    # stopifnot(length(param_trans) == nparams)
 
-    d = charmatch(param_trans,valid_trans, nomatch=0)
-    if (any(d==0)) 
-        stop("unknown transformation(s): ",paste0( unique(param_trans[d==0]),collapse=', '),".")
-    param_trans = valid_trans[d]
+    # d = charmatch(param_trans,valid_trans, nomatch=0)
+    # if (any(d==0)) 
+    #     stop("unknown transformation(s): ",paste0( unique(param_trans[d==0]),collapse=', '),".")
+    # param_trans = valid_trans[d]
     
     #######################################
     # Parameter starting and tuning value #
     #######################################
 
-    param_start = sapply(params, function(x) ifelse(is.null(x$start), NA, x$start))
-    storage.mode(param_start) = "double"
-    stopifnot(length(param_start) == nparams)
+    # param_start = sapply(params, function(x) ifelse(is.null(x$start), NA, x$start))
+    # storage.mode(param_start) = "double"
+    # stopifnot(length(param_start) == nparams)
 
-    if (any(is.na(param_start)))
-        stop("All parameters must have a starting value.")
+    # if (any(is.na(param_start)))
+    #     stop("All parameters must have a starting value.")
 
-    param_tuning = sapply(params, function(x) ifelse(is.null(x$tuning), 0, x$tuning))
-    storage.mode(param_tuning) = "double"
-    stopifnot(length(param_tuning) == nparams)
+    # param_tuning = sapply(params, function(x) ifelse(is.null(x$tuning), 0, x$tuning))
+    # storage.mode(param_tuning) = "double"
+    # stopifnot(length(param_tuning) == nparams)
 
-    if (any(param_tuning < 0))
-        stop("All parameters must have a tuning value > 0.")
+    # if (any(param_tuning < 0))
+    #     stop("All parameters must have a tuning value > 0.")
 
-    if (any(param_tuning == 0 & param_dists != "fixed"))
-        stop("All non-fixed parameters must have a tuning value > 0.")
+    # if (any(param_tuning == 0 & param_dists != "fixed"))
+    #     stop("All non-fixed parameters must have a tuning value > 0.")
 
     #######################################
     # Parameter hyperparameters           #
     #######################################
 
-    param_nhyper = sapply(params, function(x) length(x$hyperparams))
-    stopifnot(length(param_nhyper) == nparams)
-    
-    param_hyper = lapply(params, function(x) as.numeric(x$hyperparams))
-    stopifnot(length(param_hyper) == nparams)
+    # param_nhyper = sapply(params, function(x) length(x$hyperparams))
+    # stopifnot(length(param_nhyper) == nparams)
+    # 
+    # param_hyper = lapply(params, function(x) as.numeric(x$hyperparams))
+    # stopifnot(length(param_hyper) == nparams)
     
     #######################################
     # Fixed Parameters                    #
     #######################################
 
-    param_trans[param_trans == "fixed"] = "identity"
+    # param_trans[param_trans == "fixed"] = "identity"
 
-    param_nfixed = sum(param_dists == "fixed")
-    param_nfree  = sum(param_dists != "fixed")
-    param_free_index = which(param_dists != "fixed")
+    # param_nfixed = sum(param_dists == "fixed")
+    # param_nfree  = sum(param_dists != "fixed")
+    # param_free_index = which(param_dists != "fixed")
 
-    storage.mode(param_nfixed)     = "integer"
-    storage.mode(param_nfree)      = "integer"
-    storage.mode(param_free_index) = "integer"
+    # storage.mode(param_nfixed)     = "integer"
+    # storage.mode(param_nfree)      = "integer"
+    # storage.mode(param_free_index) = "integer"
 
 
 
@@ -163,15 +163,15 @@ cov_model = function(...)
         model_nparams = model_nparams,      # mx1 Integer
         model_params = model_params,        # mx1 p(i)x1 Integer
         param_names = param_names,          # px1 String
-        param_dists = param_dists,          # px1 String
-        param_trans = param_trans,          # px1 String
-        param_start = param_start,          # px1 Double
-        param_tuning = param_tuning,        # px1 Double
-        param_nhyper = param_nhyper,        # px1 Integer
-        param_hyper = param_hyper,          # px1 of hp x 1 Double
-        param_nfixed = param_nfixed,        # fixed params
-        param_nfree = param_nfree,          # free params
-        param_free_index = param_free_index # index of free params
+        # param_dists = param_dists,          # px1 String
+        # param_trans = param_trans,          # px1 String
+        # param_start = param_start,          # px1 Double
+        # param_tuning = param_tuning,        # px1 Double
+        # param_nhyper = param_nhyper,        # px1 Integer
+        # param_hyper = param_hyper,          # px1 of hp x 1 Double
+        # param_nfixed = param_nfixed,        # fixed params
+        # param_nfree = param_nfree,          # free params
+        # param_free_index = param_free_index # index of free params
     ))
 }
 

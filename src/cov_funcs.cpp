@@ -7,7 +7,7 @@
 
 template <> std::string
 cov_func_map::name = "covariance function";
-template <> std::map<std::string, int> 
+template <> std::map<std::string, int>
 cov_func_map::map = boost::assign::map_list_of("noop"                , noop)
                                               ("nugget"              , nugget_cov)
                                               ("constant"            , const_cov)
@@ -34,28 +34,24 @@ cov_func_nparams::map = boost::assign::map_list_of(noop,             1)
                                                   (rq_cov,           3)
                                                   (periodic_cov,     3)
                                                   (periodic_exp_cov, 4);
-
-SEXP valid_cov_funcs()
+// [[Rcpp::export]]
+std::vector<std::string> valid_cov_funcs()
 {
-    return Rcpp::wrap(cov_func_map::valid_keys());
+    return cov_func_map::valid_keys();
 }
 
-SEXP valid_nparams(SEXP func_r)
+// [[Rcpp::export]]
+int valid_nparams(std::string func_r)
 {
-// Possibility of bad input
-BEGIN_RCPP
-
-    int f = cov_func_map::from_string(Rcpp::as<std::string>(func_r));
-    return Rcpp::wrap( cov_func_nparams::value(f) );
-
-END_RCPP
+    int f = cov_func_map::from_string(func_r);
+    return cov_func_nparams::value(f);
 }
 
 template<> arma::mat cov_func<nugget_cov>(arma::mat const& d, arma::vec const& params)
 {
     RT_ASSERT(params.n_elem == 1, "Nugget cov - requires 1 parameter.");
     RT_ASSERT(params[0] >= 0,     "Nugget cov - requires params[0] (tauSq) >= 0.");
-    
+
     double tauSq = params[0];
     arma::mat res;
     if (d.n_rows == d.n_cols && arma::accu(arma::diagvec(d)) == 0.0) {
@@ -73,7 +69,7 @@ template<> arma::mat cov_func<const_cov>(arma::mat const& d, arma::vec const& pa
 {
     RT_ASSERT(params.n_elem == 1, "Constant cov - requires 1 parameter.");
     RT_ASSERT(params[0] >= 0,     "Constant cov - requires params[0] (sigmaSq) >= 0.");
-    
+
     arma::mat res(d.n_rows, d.n_cols);
     res.fill(params[0]);
 
@@ -88,7 +84,7 @@ template<> arma::mat cov_func<exp_cov>(arma::mat const& d, arma::vec const& para
 
     double sigmaSq = params[0];
     double phi = params[1];
-    
+
     return sigmaSq * arma::exp(-phi*d);
 }
 
@@ -100,7 +96,7 @@ template<> arma::mat cov_func<gauss_cov>(arma::mat const& d, arma::vec const& pa
 
     double sigmaSq = params[0];
     double phi = params[1];
-    
+
     return sigmaSq * arma::exp(-0.5 * arma::square(phi*d));
 }
 
@@ -114,7 +110,7 @@ template<> arma::mat cov_func<powexp_cov>(arma::mat const& d, arma::vec const& p
     double sigmaSq = params[0];
     double phi     = params[1];
     double nu      = params[2];
-    
+
     return sigmaSq * exp(-pow(phi*d,nu));
 }
 
@@ -126,29 +122,29 @@ template<> arma::mat cov_func<sphere_cov>(arma::mat const& d, arma::vec const& p
 
     double sigmaSq = params(0);
     double phi = params(1);
-    
+
     arma::mat r(d.n_rows, d.n_cols);
-    if (d.n_rows == d.n_cols) 
+    if (d.n_rows == d.n_cols)
     {
         for(int i=0; i!=r.n_rows; ++i)
         {
             for(int j=0; j!=i+1; ++j)
             {
-                r(i,j) = (d(i,j) <= 1.0/phi) ? sigmaSq * (1.0 - 1.5*phi*d(i,j) + 0.5*pow(phi*d(i,j),3.0)) : 0; 
+                r(i,j) = (d(i,j) <= 1.0/phi) ? sigmaSq * (1.0 - 1.5*phi*d(i,j) + 0.5*pow(phi*d(i,j),3.0)) : 0;
                 r(j,i) = r(i,j);
             }
         }
-    } 
-    else 
+    }
+    else
     {
-        for(int i=0; i!=r.n_rows; ++i) 
+        for(int i=0; i!=r.n_rows; ++i)
         {
             for(int j=0; j!=r.n_cols; ++j)
-                r(i,j) = (d(i,j) <= 1.0/phi) ? sigmaSq * (1.0 - 1.5*phi*d(i,j) + 0.5*pow(phi*d(i,j),3.0)) : 0; 
-        }    
+                r(i,j) = (d(i,j) <= 1.0/phi) ? sigmaSq * (1.0 - 1.5*phi*d(i,j) + 0.5*pow(phi*d(i,j),3.0)) : 0;
+        }
     }
 
-    return r;  
+    return r;
 }
 
 template<> arma::mat cov_func<matern_cov>(arma::mat const& d, arma::vec const& params)
@@ -157,7 +153,7 @@ template<> arma::mat cov_func<matern_cov>(arma::mat const& d, arma::vec const& p
     RT_ASSERT(params[0] >= 0,     "Spherical cov - requires params[0] (sigmaSq) >= 0.");
     RT_ASSERT(params[1] >= 0,     "Spherical cov - requires params[1] (phi) >= 0.");
     RT_ASSERT(params[2] >= 0,     "Spherical cov - requires params[1] (nu) >= 0.");
-    
+
     double sigmaSq = params(0);
     double phi = params(1);
     double nu = params(2);
@@ -175,9 +171,9 @@ template<> arma::mat cov_func<matern_cov>(arma::mat const& d, arma::vec const& p
             for(int j=0; j!=r.n_cols; ++j) {
                 r(i,j) = sigmaSq * pow( phi*d(i,j), nu ) * Rf_bessel_k( phi*d(i,j), nu, 1.0) / (pow(2, nu-1) * Rf_gammafn(nu));
             }
-        }    
-    }  
-    
+        }
+    }
+
     return r;
 }
 
@@ -187,12 +183,12 @@ template<> arma::mat cov_func<rq_cov>(arma::mat const& d, arma::vec const& param
     RT_ASSERT(params[0] >= 0,     "Rational quadratic cov - requires params[0] (sigmaSq) >= 0.");
     RT_ASSERT(params[1] >= 0,     "Rational quadratic cov - requires params[1] (phi) > 0.");
     RT_ASSERT(params[2] >  0,     "Rational quadratic cov - requires params[1] (alpha) >= 0.");
-    
+
 
     double sigmaSq = params(0);
     double phi = params(1);
     double alpha = params(2);
- 
+
     return sigmaSq * arma::pow(1 + 0.5 * arma::square(phi * d)/alpha, -alpha);
 }
 
@@ -202,12 +198,12 @@ template<> arma::mat cov_func<periodic_cov>(arma::mat const& d, arma::vec const&
     RT_ASSERT(params[0] >= 0,     "Periodic cov - requires params[0] (sigmaSq) >= 0.");
     RT_ASSERT(params[1] >= 0,     "Periodic cov - requires params[1] (phi) >= 0.");
     RT_ASSERT(params[2] >  0,     "Periodic cov - requires params[1] (gamma) > 0.");
-    
+
 
     double sigmaSq = params(0);
     double phi = params(1);
     double gamma = params(2);
- 
+
     return sigmaSq * arma::exp(-2.0 * arma::square(phi * arma::sin(arma::datum::pi * d / gamma)));
 }
 
@@ -224,13 +220,13 @@ template<> arma::mat cov_func<periodic_exp_cov>(arma::mat const& d, arma::vec co
     double gamma = params(2);
     double phi2 = params(3);
 
-    return sigmaSq * arma::exp( -2.0 * arma::square(phi1 * arma::sin(arma::datum::pi * d / gamma)) 
-                                -0.5 * arma::square(phi2 * d) 
+    return sigmaSq * arma::exp( -2.0 * arma::square(phi1 * arma::sin(arma::datum::pi * d / gamma))
+                                -0.5 * arma::square(phi2 * d)
                               );
 }
 
 arma::mat cov_func(int type, arma::mat const& d, arma::vec const& params)
-{   
+{
     if      (type == nugget_cov)       return cov_func<nugget_cov>(d,params);
     else if (type == const_cov)        return cov_func<const_cov>(d,params);
     else if (type == exp_cov)          return cov_func<exp_cov>(d,params);
@@ -249,8 +245,8 @@ arma::mat cov_func(int type, arma::mat const& d, arma::vec const& params)
 
 #ifdef USE_GPU
 
-void cov_func_gpu(int type, double* d, double* cov, int n, int m, int n_threads, arma::vec const& p)
-{   
+void cov_func_gpu(int type, double const* d, double* cov, int n, int m, int n_threads, arma::vec const& p)
+{
     RT_ASSERT(cov_func_nparams::value(type) == p.n_elem, "Incorrect number of parameters.");
 
     if      (type == nugget_cov)       nugget_cov_gpu(d, cov, n, m, p(0), n_threads);
@@ -265,6 +261,17 @@ void cov_func_gpu(int type, double* d, double* cov, int n, int m, int n_threads,
     else if (type == noop)             {/* NOOP */}
     else if (type == matern_cov)       {RT_ASSERT(false, "Matern is currently unsupported on the GPU.");}
     else                               {RT_ASSERT(false, "Unknown covariance function.");}
+}
+
+#else 
+
+void cov_func_gpu(int type, double const* d, double* cov, int n, int m, int n_threads, arma::vec const& p)
+{
+    RT_ASSERT(cov_func_nparams::value(type) == p.n_elem, "Incorrect number of parameters.");
+
+    arma::mat res = cov_func(type, arma::mat(d, n, m), p);
+
+    cov = res.memptr();
 }
 
 #endif

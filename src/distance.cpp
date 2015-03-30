@@ -1,13 +1,10 @@
-#include "distance.hpp"
+#include <RcppArmadillo.h>
 #include "assert.hpp"
 
-SEXP euclid(SEXP X_r, SEXP Y_r)
+// [[Rcpp::export]]
+arma::mat euclid(arma::mat X, arma::mat Y)
 {
-BEGIN_RCPP
-    arma::mat X = Rcpp::as<arma::mat>(X_r);
     int n = X.n_rows;
-
-    arma::mat Y = Rcpp::as<arma::mat>(Y_r);
     int m = Y.n_rows;
 
     RT_ASSERT(X.n_cols==Y.n_cols, "Dimension mismatch between coordinates.");
@@ -21,14 +18,12 @@ BEGIN_RCPP
         }
     }
 
-    return Rcpp::wrap(D);
-END_RCPP
+    return D;
 }
 
-SEXP euclid_sym(SEXP X_r)
+// [[Rcpp::export]]
+arma::mat euclid_sym(arma::mat X)
 {
-BEGIN_RCPP
-    arma::mat X = Rcpp::as<arma::mat>(X_r);
     int n = X.n_rows;
 
     arma::mat D(n,n);
@@ -46,6 +41,5 @@ BEGIN_RCPP
         }
     }
 
-    return Rcpp::wrap(D);
-END_RCPP
+    return D;
 }
