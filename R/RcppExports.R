@@ -13,6 +13,22 @@ benchmark_calc_chol_cov <- function(model, d, p, n, gpu = FALSE) {
     .Call('RcppGP_benchmark_calc_chol_cov', PACKAGE = 'RcppGP', model, d, p, n, gpu)
 }
 
+test_gpu_mat <- function(d) {
+    .Call('RcppGP_test_gpu_mat', PACKAGE = 'RcppGP', d)
+}
+
+calc_cov <- function(model, d, p, gpu = FALSE) {
+    .Call('RcppGP_calc_cov', PACKAGE = 'RcppGP', model, d, p, gpu)
+}
+
+calc_inv_cov <- function(model, d, p, gpu = FALSE) {
+    .Call('RcppGP_calc_inv_cov', PACKAGE = 'RcppGP', model, d, p, gpu)
+}
+
+calc_chol_cov <- function(model, d, p, gpu = FALSE) {
+    .Call('RcppGP_calc_chol_cov', PACKAGE = 'RcppGP', model, d, p, gpu)
+}
+
 valid_cov_funcs <- function() {
     .Call('RcppGP_valid_cov_funcs', PACKAGE = 'RcppGP')
 }
@@ -29,35 +45,15 @@ euclid_sym <- function(X) {
     .Call('RcppGP_euclid_sym', PACKAGE = 'RcppGP', X)
 }
 
+check_gpu_mem <- function() {
+    invisible(.Call('RcppGP_check_gpu_mem', PACKAGE = 'RcppGP'))
+}
+
 init <- function(verbose) {
     invisible(.Call('RcppGP_init', PACKAGE = 'RcppGP', verbose))
 }
 
 finalize <- function() {
     invisible(.Call('RcppGP_finalize', PACKAGE = 'RcppGP'))
-}
-
-check_gpu_mem <- function() {
-    invisible(.Call('RcppGP_check_gpu_mem', PACKAGE = 'RcppGP'))
-}
-
-test_calc_cov <- function(model, d, p) {
-    .Call('RcppGP_test_calc_cov', PACKAGE = 'RcppGP', model, d, p)
-}
-
-test_calc_chol_cov <- function(model, d, p) {
-    .Call('RcppGP_test_calc_chol_cov', PACKAGE = 'RcppGP', model, d, p)
-}
-
-test_calc_cov_gpu <- function(model, d, p) {
-    .Call('RcppGP_test_calc_cov_gpu', PACKAGE = 'RcppGP', model, d, p)
-}
-
-test_calc_inv_cov_gpu <- function(model, d, p) {
-    .Call('RcppGP_test_calc_inv_cov_gpu', PACKAGE = 'RcppGP', model, d, p)
-}
-
-test_calc_chol_cov_gpu <- function(model, d, p) {
-    .Call('RcppGP_test_calc_chol_cov_gpu', PACKAGE = 'RcppGP', model, d, p)
 }
 

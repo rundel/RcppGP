@@ -3,6 +3,7 @@
 
 #include "assert.hpp"
 #include "cov_funcs.hpp"
+#include "cov_funcs_gpu.hpp"
 
 
 template <> std::string

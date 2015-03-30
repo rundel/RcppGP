@@ -94,7 +94,7 @@ double* cov_model::calc_cov_gpu_ptr(gpu_mat const& d, arma::vec const& params) c
         cov_func_gpu(type, d.get_const_ptr(), cov.get_ptr(), m, n, 64, mparams);
     }
 
-    return cov.get_ptr();
+    return cov.get_gpu_mat();
 }
 
 arma::mat cov_model::calc_cov_gpu(gpu_mat const& d, arma::vec const& params) const
@@ -126,7 +126,7 @@ double* cov_model::calc_inv_cov_gpu_ptr(gpu_mat const& d, arma::vec const& param
 
     A.inv_sympd();
 
-    return A.get_ptr();
+    return A.get_gpu_mat();
 }
 
 arma::mat cov_model::calc_inv_cov_gpu(gpu_mat const& d, arma::vec const& params) const

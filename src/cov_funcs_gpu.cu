@@ -1,7 +1,7 @@
 #include <enums.hpp>
 #include <math_constants.h>
 
-__global__ void nugget_cov_kernel(double* dist, double* cov,
+__global__ void nugget_cov_kernel(double const* dist, double* cov,
                                   const int n, const int nn,
                                   const double nugget)
 {
@@ -15,7 +15,7 @@ __global__ void nugget_cov_kernel(double* dist, double* cov,
 }
 
 
-void nugget_cov_gpu(double* dist, double* cov,
+void nugget_cov_gpu(double const* dist, double* cov,
                     const int n, const int m,
                     double nugget, int n_threads)
 {
@@ -29,7 +29,7 @@ void nugget_cov_gpu(double* dist, double* cov,
 }
 
 
-__global__ void constant_cov_kernel(double* dist, double* cov,
+__global__ void constant_cov_kernel(double const* dist, double* cov,
                                     const int nm, const double sigma2)
 {
     int n_threads = gridDim.x * blockDim.x;
@@ -41,7 +41,7 @@ __global__ void constant_cov_kernel(double* dist, double* cov,
     }
 }
 
-void constant_cov_gpu(double* dist, double* cov,
+void constant_cov_gpu(double const* dist, double* cov,
                       const int n, const int m,
                       double sigma2, int n_threads)
 {
@@ -55,7 +55,7 @@ void constant_cov_gpu(double* dist, double* cov,
 
 
 
-__global__ void exponential_cov_kernel(double* dist, double* cov, const int nm,
+__global__ void exponential_cov_kernel(double const* dist, double* cov, const int nm,
                                        const double sigma2, const double phi)
 {
     int n_threads = gridDim.x * blockDim.x;
@@ -68,7 +68,7 @@ __global__ void exponential_cov_kernel(double* dist, double* cov, const int nm,
 }
 
 
-void exponential_cov_gpu(double* dist, double* cov,
+void exponential_cov_gpu(double const* dist, double* cov,
                          const int n, const int m,
                          double sigma2, double phi,
                          int n_threads)
@@ -82,7 +82,7 @@ void exponential_cov_gpu(double* dist, double* cov,
 }
 
 
-__global__ void gaussian_cov_kernel(double* dist, double* cov, const int nm,
+__global__ void gaussian_cov_kernel(double const* dist, double* cov, const int nm,
                                     const double sigma2, const double phi)
 {
     int n_threads = gridDim.x * blockDim.x;
@@ -95,7 +95,7 @@ __global__ void gaussian_cov_kernel(double* dist, double* cov, const int nm,
 }
 
 
-void gaussian_cov_gpu(double* dist, double* cov,
+void gaussian_cov_gpu(double const* dist, double* cov,
                       const int n, const int m,
                       double sigma2, double phi,
                       int n_threads)
@@ -109,7 +109,7 @@ void gaussian_cov_gpu(double* dist, double* cov,
 }
 
 
-__global__ void powered_exponential_cov_kernel(double* dist, double* cov,
+__global__ void powered_exponential_cov_kernel(double const* dist, double* cov,
                                                const int nm, const double sigma2,
                                                const double phi, const double kappa)
 {
@@ -123,7 +123,7 @@ __global__ void powered_exponential_cov_kernel(double* dist, double* cov,
 }
 
 
-void powered_exponential_cov_gpu(double* dist, double* cov,
+void powered_exponential_cov_gpu(double const* dist, double* cov,
                                  const int n, const int m,
                                  double sigma2, double phi,
                                  double kappa, int n_threads)
@@ -137,7 +137,7 @@ void powered_exponential_cov_gpu(double* dist, double* cov,
 }
 
 
-__global__ void spherical_cov_kernel(double* dist, double* cov, const int nm,
+__global__ void spherical_cov_kernel(double const* dist, double* cov, const int nm,
                                      const double sigma2, const double phi)
 {
     int n_threads = gridDim.x * blockDim.x;
@@ -152,7 +152,7 @@ __global__ void spherical_cov_kernel(double* dist, double* cov, const int nm,
 }
 
 
-void spherical_cov_gpu(double* dist, double* cov,
+void spherical_cov_gpu(double const* dist, double* cov,
                        const int n, const int m,
                        double sigma2, double phi,
                        int n_threads)
@@ -166,7 +166,7 @@ void spherical_cov_gpu(double* dist, double* cov,
 }
 
 
-__global__ void rational_quadratic_cov_kernel(double* dist, double* cov, const int nm,
+__global__ void rational_quadratic_cov_kernel(double const* dist, double* cov, const int nm,
                                               const double sigma2, const double phi,
                                               const double alpha)
 {
@@ -180,7 +180,7 @@ __global__ void rational_quadratic_cov_kernel(double* dist, double* cov, const i
 }
 
 
-void rational_quadratic_cov_gpu(double* dist, double* cov,
+void rational_quadratic_cov_gpu(double const* dist, double* cov,
                                 const int n, const int m,
                                 double sigma2, double phi,
                                 double alpha, int n_threads)
@@ -194,7 +194,7 @@ void rational_quadratic_cov_gpu(double* dist, double* cov,
 }
 
 
-__global__ void periodic_cov_kernel(double* dist, double* cov, const int nm,
+__global__ void periodic_cov_kernel(double const* dist, double* cov, const int nm,
                                     const double sigma2, const double phi,
                                     const double gamma)
 {
@@ -208,7 +208,7 @@ __global__ void periodic_cov_kernel(double* dist, double* cov, const int nm,
 }
 
 
-void periodic_cov_gpu(double* dist, double* cov,
+void periodic_cov_gpu(double const* dist, double* cov,
                       const int n, const int m,
                       double sigma2, double phi,
                       double gamma, int n_threads)
@@ -222,7 +222,7 @@ void periodic_cov_gpu(double* dist, double* cov,
 }
 
 
-__global__ void exp_periodic_cov_kernel(double* dist, double* cov, const int nm,
+__global__ void exp_periodic_cov_kernel(double const* dist, double* cov, const int nm,
                                         const double sigma2, const double phi1,
                                         const double gamma, const double phi2)
 {
@@ -237,7 +237,7 @@ __global__ void exp_periodic_cov_kernel(double* dist, double* cov, const int nm,
 }
 
 
-void exp_periodic_cov_gpu(double* dist, double* cov,
+void exp_periodic_cov_gpu(double const* dist, double* cov,
                           const int n, const int m,
                           double sigma2, double phi1,
                           double gamma, double phi2,

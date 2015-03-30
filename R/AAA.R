@@ -1,6 +1,6 @@
 .onLoad = function(lib, pkg) 
 {
-    #.Call("init", PACKAGE="RcppGP")
+    init()
 }
 
 .onAttach = function(lib, pkg) 
@@ -12,5 +12,5 @@
 
 .onUnload <- function(libpath) 
 {
-    #.Call("finalize", PACKAGE="RcppGP")
+    finalize()
 }

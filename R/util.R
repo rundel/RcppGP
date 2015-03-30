@@ -1,9 +1,3 @@
-
-valid_param_dists  = function() .Call("valid_param_dists",PACKAGE="RcppGP")
-valid_param_trans  = function() .Call("valid_param_trans",PACKAGE="RcppGP")
-valid_cov_funcs    = function() .Call("valid_cov_funcs",PACKAGE="RcppGP")
-valid_nparams      = function(f) .Call("valid_nparams",f,PACKAGE="RcppGP")
-
 block_diag_mat = function(...)
 {
     l = list(...)

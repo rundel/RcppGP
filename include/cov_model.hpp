@@ -35,7 +35,7 @@ struct cov_model
     double*   calc_cov_gpu_ptr(gpu_mat const& d, arma::vec const& params) const;
 
     arma::mat calc_inv_cov_gpu(gpu_mat const& d, arma::vec const& params) const;
-    double* calc_inv_cov_gpu_ptr(gpu_mat const& d, arma::vec const& params) const;
+    double*   calc_inv_cov_gpu_ptr(gpu_mat const& d, arma::vec const& params) const;
 };
 
 

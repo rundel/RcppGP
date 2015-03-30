@@ -10,27 +10,71 @@
 
 #include <cuda_runtime.h>
 #include <cublas.h>
+#include <cusolverDn.h>
+
+#include <magma.h>
 
 #include "gpu_util.hpp"
 
+
+static const char* cudasolver_error(cusolverStatus_t error)
+{
+    switch (error)
+    {
+        case CUSOLVER_STATUS_SUCCESS:
+            return "CUSOLVER_SUCCESS";
+
+        case CUSOLVER_STATUS_NOT_INITIALIZED:
+            return "CUSOLVER_STATUS_NOT_INITIALIZED";
+
+        case CUSOLVER_STATUS_ALLOC_FAILED:
+            return "CUSOLVER_STATUS_ALLOC_FAILED";
+
+        case CUSOLVER_STATUS_INVALID_VALUE:
+            return "CUSOLVER_STATUS_INVALID_VALUE";
+
+        case CUSOLVER_STATUS_ARCH_MISMATCH:
+            return "CUSOLVER_STATUS_ARCH_MISMATCH";
+
+        case CUSOLVER_STATUS_EXECUTION_FAILED:
+            return "CUSOLVER_STATUS_EXECUTION_FAILED";
+
+        case CUSOLVER_STATUS_INTERNAL_ERROR:
+            return "CUSOLVER_STATUS_INTERNAL_ERROR";
+
+        case CUSOLVER_STATUS_MATRIX_TYPE_NOT_SUPPORTED:
+            return "CUSOLVER_STATUS_MATRIX_TYPE_NOT_SUPPORTED";
+
+        case CUSOLVER_STATUS_MAPPING_ERROR:
+            return "CUSOLVER_STATUS_MAPPING_ERROR";
+
+        case CUSOLVER_STATUS_NOT_SUPPORTED:
+            return "CUSOLVER_STATUS_NOT_SUPPORTED";
+
+        case CUSOLVER_STATUS_ZERO_PIVOT:
+            return "CUSOLVER_STATUS_ZERO_PIVOT";
+
+        case CUSOLVER_STATUS_INVALID_LICENSE:
+            return "CUSOLVER_STATUS_INVALID_LICENSE";
+    }
+
+    return "<unknown>";
+}
+
+
+
 class gpu_mat : boost::noncopyable 
 {
-private
+private:
     double *mat;
     bool allocated;
 
     void alloc_mat()
     {
         cudaError s = cudaMalloc((void**)&mat, n_rows*n_cols*sizeof(double));
+        RT_ASSERT(s==cudaSuccess, "CUDA allocation failed");
 
-        if (s != cudaSuccess) 
-        {
-            RT_ASSERT(false,"CUDA allocation failed");
-        }
-        else
-        {
-            allocated = true;
-        }
+        allocated = true;
     }
 
 public:
@@ -80,8 +124,7 @@ public:
 
     arma::mat get_mat()
     {
-        if (!allocated)
-            RT_ASSERT(false,"CUDA matrix not allocated");
+        RT_ASSERT(allocated,"CUDA matrix not allocated");
 
         arma::mat m(n_rows, n_cols);
 
@@ -92,16 +135,21 @@ public:
 
     double const* get_const_ptr() const
     {
-        if (!allocated)
-            RT_ASSERT(false,"CUDA matrix not allocated");
+        RT_ASSERT(allocated,"CUDA matrix not allocated");
 
         return mat;
     }
 
     double* get_ptr()
     {
-        if (!allocated)
-            RT_ASSERT(false,"CUDA matrix not allocated");
+        RT_ASSERT(allocated,"CUDA matrix not allocated");
+
+        return mat;
+    }
+
+    double* get_gpu_mat()
+    {
+        RT_ASSERT(allocated,"CUDA matrix not allocated");
 
         double* tmp = mat;
 
@@ -116,12 +164,44 @@ public:
         RT_ASSERT(n_rows==n_cols, "Matrix must be square.");
         RT_ASSERT(uplo=='U' || uplo=='L', "uplo must be U or L.");
 
+
+        magma_uplo_t magma_uplo = uplo=='U' ? MagmaUpper : MagmaLower;
         int info;
-        magma_dpotrf_gpu(uplo, n_rows, mat, n_rows, &info);
 
+        magma_dpotrf_gpu(magma_uplo, n_rows, mat, n_rows, &info);
         RT_ASSERT(info==0, "Cholesky failed.");
+/*
+        cusolverDnHandle_t handle;
+        cusolverDnCreate(&handle);
 
-        trimat(M.mat, n, uplo, 0.0, 64);
+        cusolverStatus_t s;
+
+        cublasFillMode_t cuda_uplo = uplo=='U' ? CUBLAS_FILL_MODE_UPPER
+                                               : CUBLAS_FILL_MODE_LOWER;
+        int lwork;
+        s = cusolverDnDpotrf_bufferSize(handle, cuda_uplo, n_rows,
+                                        mat, n_rows, &lwork);
+        RT_ASSERT(s==CUSOLVER_STATUS_SUCCESS, "Buffer size calc failed.");
+
+        double *work;
+        cudaError cs = cudaMalloc((void**)&work, lwork*sizeof(double));
+        RT_ASSERT(cs == cudaSuccess, "CUDA allocation failed");
+
+        int info;
+        s = cusolverDnDpotrf(handle, cuda_uplo, n_rows,
+                             mat, n_rows, 
+                             work, lwork, &info);
+
+        cudaFree(work);
+
+        Rcpp::Rcout << "info: " << info 
+                    << " lwork: " << lwork 
+                    << " s: " << s 
+                    << " (" << cudasolver_error(s) << ")\n";
+
+        RT_ASSERT(info==0 && s==CUSOLVER_STATUS_SUCCESS, "Cholesky failed.");
+*/        
+        trimat(mat, n_rows, uplo, 0.0, 64);
     }
 
     void inv_chol(char uplo)
@@ -130,11 +210,14 @@ public:
         RT_ASSERT(uplo=='U' || uplo=='L', "uplo must be U or L.");
 
         int info;
-        magma_dpotri_gpu(uplo, n_rows, mat, n_rows, &info);
+
+        magma_uplo_t magma_uplo = uplo=='U' ? MagmaUpper : MagmaLower;
+
+        magma_dpotri_gpu(magma_uplo, n_rows, mat, n_rows, &info);
 
         RT_ASSERT(info==0, "Inverse (dpotri) failed.");
 
-        symmat(mat, n, uplo, 64);
+        symmat(mat, n_rows, uplo, 64);
     }
 
     void inv_sympd()

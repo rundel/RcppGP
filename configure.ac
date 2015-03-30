@@ -103,7 +103,7 @@ AC_CHECK_FILE(
     [USE_MAGMA=no]
 )
 
-CUDA_LIBS="-lcudart -lcublas"
+CUDA_LIBS="-lcudart -lcublas -lcusolver"
 AC_MSG_CHECKING([whether this is a 64-bit version of CUDA])
 AC_CHECK_FILE(
     [${CUDA_HOME}/lib64/libcublas.so],

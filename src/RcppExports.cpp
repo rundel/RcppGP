@@ -51,6 +51,59 @@ BEGIN_RCPP
     return __result;
 END_RCPP
 }
+// test_gpu_mat
+arma::mat test_gpu_mat(arma::mat const& d);
+RcppExport SEXP RcppGP_test_gpu_mat(SEXP dSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< arma::mat const& >::type d(dSEXP);
+    __result = Rcpp::wrap(test_gpu_mat(d));
+    return __result;
+END_RCPP
+}
+// calc_cov
+arma::mat calc_cov(Rcpp::List model, arma::mat d, arma::vec p, bool gpu);
+RcppExport SEXP RcppGP_calc_cov(SEXP modelSEXP, SEXP dSEXP, SEXP pSEXP, SEXP gpuSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< Rcpp::List >::type model(modelSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type d(dSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type p(pSEXP);
+    Rcpp::traits::input_parameter< bool >::type gpu(gpuSEXP);
+    __result = Rcpp::wrap(calc_cov(model, d, p, gpu));
+    return __result;
+END_RCPP
+}
+// calc_inv_cov
+arma::mat calc_inv_cov(Rcpp::List model, arma::mat d, arma::vec p, bool gpu);
+RcppExport SEXP RcppGP_calc_inv_cov(SEXP modelSEXP, SEXP dSEXP, SEXP pSEXP, SEXP gpuSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< Rcpp::List >::type model(modelSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type d(dSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type p(pSEXP);
+    Rcpp::traits::input_parameter< bool >::type gpu(gpuSEXP);
+    __result = Rcpp::wrap(calc_inv_cov(model, d, p, gpu));
+    return __result;
+END_RCPP
+}
+// calc_chol_cov
+arma::mat calc_chol_cov(Rcpp::List model, arma::mat d, arma::vec p, bool gpu);
+RcppExport SEXP RcppGP_calc_chol_cov(SEXP modelSEXP, SEXP dSEXP, SEXP pSEXP, SEXP gpuSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< Rcpp::List >::type model(modelSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type d(dSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type p(pSEXP);
+    Rcpp::traits::input_parameter< bool >::type gpu(gpuSEXP);
+    __result = Rcpp::wrap(calc_chol_cov(model, d, p, gpu));
+    return __result;
+END_RCPP
+}
 // valid_cov_funcs
 std::vector<std::string> valid_cov_funcs();
 RcppExport SEXP RcppGP_valid_cov_funcs() {
@@ -95,6 +148,15 @@ BEGIN_RCPP
     return __result;
 END_RCPP
 }
+// check_gpu_mem
+void check_gpu_mem();
+RcppExport SEXP RcppGP_check_gpu_mem() {
+BEGIN_RCPP
+    Rcpp::RNGScope __rngScope;
+    check_gpu_mem();
+    return R_NilValue;
+END_RCPP
+}
 // init
 void init(bool verbose);
 RcppExport SEXP RcppGP_init(SEXP verboseSEXP) {
@@ -112,79 +174,5 @@ BEGIN_RCPP
     Rcpp::RNGScope __rngScope;
     finalize();
     return R_NilValue;
-END_RCPP
-}
-// check_gpu_mem
-void check_gpu_mem();
-RcppExport SEXP RcppGP_check_gpu_mem() {
-BEGIN_RCPP
-    Rcpp::RNGScope __rngScope;
-    check_gpu_mem();
-    return R_NilValue;
-END_RCPP
-}
-// test_calc_cov
-arma::mat test_calc_cov(Rcpp::List model, arma::mat d, arma::vec p);
-RcppExport SEXP RcppGP_test_calc_cov(SEXP modelSEXP, SEXP dSEXP, SEXP pSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject __result;
-    Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< Rcpp::List >::type model(modelSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type d(dSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type p(pSEXP);
-    __result = Rcpp::wrap(test_calc_cov(model, d, p));
-    return __result;
-END_RCPP
-}
-// test_calc_chol_cov
-arma::mat test_calc_chol_cov(Rcpp::List model, arma::mat d, arma::vec p);
-RcppExport SEXP RcppGP_test_calc_chol_cov(SEXP modelSEXP, SEXP dSEXP, SEXP pSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject __result;
-    Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< Rcpp::List >::type model(modelSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type d(dSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type p(pSEXP);
-    __result = Rcpp::wrap(test_calc_chol_cov(model, d, p));
-    return __result;
-END_RCPP
-}
-// test_calc_cov_gpu
-arma::mat test_calc_cov_gpu(Rcpp::List model, arma::mat d, arma::vec p);
-RcppExport SEXP RcppGP_test_calc_cov_gpu(SEXP modelSEXP, SEXP dSEXP, SEXP pSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject __result;
-    Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< Rcpp::List >::type model(modelSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type d(dSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type p(pSEXP);
-    __result = Rcpp::wrap(test_calc_cov_gpu(model, d, p));
-    return __result;
-END_RCPP
-}
-// test_calc_inv_cov_gpu
-arma::mat test_calc_inv_cov_gpu(Rcpp::List model, arma::mat d, arma::vec p);
-RcppExport SEXP RcppGP_test_calc_inv_cov_gpu(SEXP modelSEXP, SEXP dSEXP, SEXP pSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject __result;
-    Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< Rcpp::List >::type model(modelSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type d(dSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type p(pSEXP);
-    __result = Rcpp::wrap(test_calc_inv_cov_gpu(model, d, p));
-    return __result;
-END_RCPP
-}
-// test_calc_chol_cov_gpu
-arma::mat test_calc_chol_cov_gpu(Rcpp::List model, arma::mat d, arma::vec p);
-RcppExport SEXP RcppGP_test_calc_chol_cov_gpu(SEXP modelSEXP, SEXP dSEXP, SEXP pSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject __result;
-    Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< Rcpp::List >::type model(modelSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type d(dSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type p(pSEXP);
-    __result = Rcpp::wrap(test_calc_chol_cov_gpu(model, d, p));
-    return __result;
 END_RCPP
 }

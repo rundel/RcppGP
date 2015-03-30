@@ -162,7 +162,7 @@ cov_model = function(...)
         model_names = model_names,          # mx1 String
         model_nparams = model_nparams,      # mx1 Integer
         model_params = model_params,        # mx1 p(i)x1 Integer
-        param_names = param_names,          # px1 String
+        param_names = param_names           # px1 String
         # param_dists = param_dists,          # px1 String
         # param_trans = param_trans,          # px1 String
         # param_start = param_start,          # px1 Double
@@ -174,66 +174,3 @@ cov_model = function(...)
         # param_free_index = param_free_index # index of free params
     ))
 }
-
-calc_cov = function(m,d,p)
-{
-   .Call("test_calc_cov",m,d,p,"RcppGP") 
-}
-
-calc_inv_cov = function(m,d,p)
-{
-   .Call("test_calc_inv_cov",m,d,p) 
-}
-
-calc_chol_cov = function(m,d,p)
-{
-   .Call("test_calc_chol_cov",m,d,p) 
-}
-
-calc_cov_gpu = function(m,d,p)
-{
-   .Call("test_calc_cov_gpu",m,d,p) 
-}
-
-calc_inv_cov_gpu = function(m,d,p)
-{
-   .Call("test_calc_inv_cov_gpu",m,d,p) 
-}
-
-calc_chol_cov_gpu = function(m,d,p)
-{
-   .Call("test_calc_chol_cov_gpu",m,d,p) 
-}
-
-benchmark_cov = function(m,d,p,n)
-{
-   .Call("benchmark_calc_cov",m,d,p,n,"RcppGP") 
-}
-
-benchmark_inv_cov = function(m,d,p,n)
-{
-   .Call("benchmark_calc_inv_cov",m,d,p,n) 
-}
-
-benchmark_chol_cov = function(m,d,p,n)
-{
-   .Call("benchmark_calc_chol_cov",m,d,p,n) 
-}
-
-benchmark_cov_gpu = function(m,d,p,n)
-{
-   .Call("benchmark_calc_cov_gpu",m,d,p,n) 
-}
-
-benchmark_inv_cov_gpu = function(m,d,p,n)
-{
-   .Call("benchmark_calc_inv_cov_gpu",m,d,p,n) 
-}
-
-benchmark_chol_cov_gpu = function(m,d,p,n)
-{
-   .Call("benchmark_calc_chol_cov_gpu",m,d,p,n) 
-}
-
-#cov_model(nugget, exponential, invalid, invalid2)
-#cov_model(nugget, exponential)
