@@ -1,5 +1,8 @@
 #include <RcppArmadillo.h>
 
+#include "cuda_util.hpp"
+#include "assert.hpp"
+
 #ifdef USE_GPU
 #include <magma.h>
 #include <cuda_runtime.h>
@@ -23,13 +26,15 @@ void init(bool verbose = false)
 {
 #ifdef USE_GPU
     magma_init();
-    if( cublasInit() != CUBLAS_STATUS_SUCCESS ) 
+    cublasStatus_t s = cublasInit();
+    if( s != CUBLAS_STATUS_SUCCESS ) 
     {
         magma_finalize();
-        Rcpp::stop("cublasInit failed");
+        RT_ASSERT(false, cublas_error(s));
     }
     if (verbose) {
         //magma_print_devices();
+        magma_print_environment();
 
         check_gpu_mem();
     }
@@ -41,6 +46,15 @@ void finalize()
 {
 #ifdef USE_GPU
     //cublasShutdown();
-    //magma_finalize();
+    magma_finalize();
+    cudaDeviceReset();
+#endif
+}
+
+// [[Rcpp::export]]
+void reset()
+{
+#ifdef USE_GPU
+    cudaDeviceReset();
 #endif
 }

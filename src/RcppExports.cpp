@@ -51,17 +51,6 @@ BEGIN_RCPP
     return __result;
 END_RCPP
 }
-// test_gpu_mat
-arma::mat test_gpu_mat(arma::mat const& d);
-RcppExport SEXP RcppGP_test_gpu_mat(SEXP dSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject __result;
-    Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< arma::mat const& >::type d(dSEXP);
-    __result = Rcpp::wrap(test_gpu_mat(d));
-    return __result;
-END_RCPP
-}
 // calc_cov
 arma::mat calc_cov(Rcpp::List model, arma::mat d, arma::vec p, bool gpu);
 RcppExport SEXP RcppGP_calc_cov(SEXP modelSEXP, SEXP dSEXP, SEXP pSEXP, SEXP gpuSEXP) {
@@ -101,6 +90,23 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< arma::vec >::type p(pSEXP);
     Rcpp::traits::input_parameter< bool >::type gpu(gpuSEXP);
     __result = Rcpp::wrap(calc_chol_cov(model, d, p, gpu));
+    return __result;
+END_RCPP
+}
+// calc_cov_low_rank
+Rcpp::List calc_cov_low_rank(Rcpp::List model, arma::mat d, arma::vec p, int rank, int over_samp, int qr_iter, bool gpu);
+RcppExport SEXP RcppGP_calc_cov_low_rank(SEXP modelSEXP, SEXP dSEXP, SEXP pSEXP, SEXP rankSEXP, SEXP over_sampSEXP, SEXP qr_iterSEXP, SEXP gpuSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< Rcpp::List >::type model(modelSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type d(dSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type p(pSEXP);
+    Rcpp::traits::input_parameter< int >::type rank(rankSEXP);
+    Rcpp::traits::input_parameter< int >::type over_samp(over_sampSEXP);
+    Rcpp::traits::input_parameter< int >::type qr_iter(qr_iterSEXP);
+    Rcpp::traits::input_parameter< bool >::type gpu(gpuSEXP);
+    __result = Rcpp::wrap(calc_cov_low_rank(model, d, p, rank, over_samp, qr_iter, gpu));
     return __result;
 END_RCPP
 }
@@ -174,5 +180,116 @@ BEGIN_RCPP
     Rcpp::RNGScope __rngScope;
     finalize();
     return R_NilValue;
+END_RCPP
+}
+// reset
+void reset();
+RcppExport SEXP RcppGP_reset() {
+BEGIN_RCPP
+    Rcpp::RNGScope __rngScope;
+    reset();
+    return R_NilValue;
+END_RCPP
+}
+// gpu_chol
+arma::mat gpu_chol(arma::mat m, char uplo);
+RcppExport SEXP RcppGP_gpu_chol(SEXP mSEXP, SEXP uploSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< arma::mat >::type m(mSEXP);
+    Rcpp::traits::input_parameter< char >::type uplo(uploSEXP);
+    __result = Rcpp::wrap(gpu_chol(m, uplo));
+    return __result;
+END_RCPP
+}
+// gpu_mat_mult
+arma::mat gpu_mat_mult(arma::mat A, arma::mat B, char opA, char opB, bool swap);
+RcppExport SEXP RcppGP_gpu_mat_mult(SEXP ASEXP, SEXP BSEXP, SEXP opASEXP, SEXP opBSEXP, SEXP swapSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< arma::mat >::type A(ASEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type B(BSEXP);
+    Rcpp::traits::input_parameter< char >::type opA(opASEXP);
+    Rcpp::traits::input_parameter< char >::type opB(opBSEXP);
+    Rcpp::traits::input_parameter< bool >::type swap(swapSEXP);
+    __result = Rcpp::wrap(gpu_mat_mult(A, B, opA, opB, swap));
+    return __result;
+END_RCPP
+}
+// gpu_fill_rnorm
+arma::mat gpu_fill_rnorm(arma::mat m, double mu, double sigma);
+RcppExport SEXP RcppGP_gpu_fill_rnorm(SEXP mSEXP, SEXP muSEXP, SEXP sigmaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< arma::mat >::type m(mSEXP);
+    Rcpp::traits::input_parameter< double >::type mu(muSEXP);
+    Rcpp::traits::input_parameter< double >::type sigma(sigmaSEXP);
+    __result = Rcpp::wrap(gpu_fill_rnorm(m, mu, sigma));
+    return __result;
+END_RCPP
+}
+// gpu_rand_prod
+arma::mat gpu_rand_prod(arma::mat m, int l);
+RcppExport SEXP RcppGP_gpu_rand_prod(SEXP mSEXP, SEXP lSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< arma::mat >::type m(mSEXP);
+    Rcpp::traits::input_parameter< int >::type l(lSEXP);
+    __result = Rcpp::wrap(gpu_rand_prod(m, l));
+    return __result;
+END_RCPP
+}
+// gpu_rand_proj
+arma::mat gpu_rand_proj(arma::mat m, int rank, int over_samp, int qr_iter);
+RcppExport SEXP RcppGP_gpu_rand_proj(SEXP mSEXP, SEXP rankSEXP, SEXP over_sampSEXP, SEXP qr_iterSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< arma::mat >::type m(mSEXP);
+    Rcpp::traits::input_parameter< int >::type rank(rankSEXP);
+    Rcpp::traits::input_parameter< int >::type over_samp(over_sampSEXP);
+    Rcpp::traits::input_parameter< int >::type qr_iter(qr_iterSEXP);
+    __result = Rcpp::wrap(gpu_rand_proj(m, rank, over_samp, qr_iter));
+    return __result;
+END_RCPP
+}
+// gpu_QR_Q
+arma::mat gpu_QR_Q(arma::mat m);
+RcppExport SEXP RcppGP_gpu_QR_Q(SEXP mSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< arma::mat >::type m(mSEXP);
+    __result = Rcpp::wrap(gpu_QR_Q(m));
+    return __result;
+END_RCPP
+}
+// gpu_eig_sym
+Rcpp::List gpu_eig_sym(arma::mat m);
+RcppExport SEXP RcppGP_gpu_eig_sym(SEXP mSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< arma::mat >::type m(mSEXP);
+    __result = Rcpp::wrap(gpu_eig_sym(m));
+    return __result;
+END_RCPP
+}
+// gpu_low_rank_sym
+Rcpp::List gpu_low_rank_sym(arma::mat m, int rank, int over_samp, int qr_iter);
+RcppExport SEXP RcppGP_gpu_low_rank_sym(SEXP mSEXP, SEXP rankSEXP, SEXP over_sampSEXP, SEXP qr_iterSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< arma::mat >::type m(mSEXP);
+    Rcpp::traits::input_parameter< int >::type rank(rankSEXP);
+    Rcpp::traits::input_parameter< int >::type over_samp(over_sampSEXP);
+    Rcpp::traits::input_parameter< int >::type qr_iter(qr_iterSEXP);
+    __result = Rcpp::wrap(gpu_low_rank_sym(m, rank, over_samp, qr_iter));
+    return __result;
 END_RCPP
 }

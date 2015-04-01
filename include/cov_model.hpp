@@ -29,13 +29,18 @@ struct cov_model
     cov_model(Rcpp::List model);
 
     arma::mat calc_cov(arma::mat const& d, arma::vec const& params) const;
-    arma::mat calc_inv_cov(arma::mat const& d, arma::vec const& params) const;
-
     arma::mat calc_cov_gpu(gpu_mat const& d, arma::vec const& params) const;
     double*   calc_cov_gpu_ptr(gpu_mat const& d, arma::vec const& params) const;
 
+    arma::mat calc_inv_cov(arma::mat const& d, arma::vec const& params) const;
     arma::mat calc_inv_cov_gpu(gpu_mat const& d, arma::vec const& params) const;
     double*   calc_inv_cov_gpu_ptr(gpu_mat const& d, arma::vec const& params) const;
+
+    void calc_cov_low_rank(arma::mat const& d, arma::vec const& params,
+                           arma::mat& U, arma::vec& C,
+                           int rank, int over_samp, int qr_iter) const;
+    //arma::mat calc_cov_gpu(gpu_mat const& d, arma::vec const& params) const;
+    //double*   calc_cov_gpu_ptr(gpu_mat const& d, arma::vec const& params) const;
 };
 
 

@@ -54,6 +54,9 @@ cov_model::cov_model(Rcpp::List opts)
     //param_free_index = Rcpp::as<arma::uvec>(opts["param_free_index"]) - 1;
 }
 
+///
+/// Calculate covariance matrix
+///
 
 arma::mat cov_model::calc_cov(arma::mat const& d, arma::vec const& params) const
 {
@@ -72,17 +75,12 @@ arma::mat cov_model::calc_cov(arma::mat const& d, arma::vec const& params) const
     return cov;
 }
 
-arma::mat cov_model::calc_inv_cov(arma::mat const& d, arma::vec const& params) const
-{
-    return arma::inv_sympd(calc_cov(d, params));
-}
-
 double* cov_model::calc_cov_gpu_ptr(gpu_mat const& d, arma::vec const& params) const
 {
     RT_ASSERT(nparams == params.n_elem, "Number of given parameters does not match the number expected.");
 
-    int m = d.n_rows;
-    int n = d.n_cols;
+    int m = d.get_n_rows();
+    int n = d.get_n_cols();
 
     gpu_mat cov(m,n,0.0);
 
@@ -99,20 +97,31 @@ double* cov_model::calc_cov_gpu_ptr(gpu_mat const& d, arma::vec const& params) c
 
 arma::mat cov_model::calc_cov_gpu(gpu_mat const& d, arma::vec const& params) const
 {
-    int m = d.n_rows;
-    int n = d.n_cols;
+    int m = d.get_n_rows();
+    int n = d.get_n_cols();
 
     gpu_mat cov( calc_cov_gpu_ptr(d, params), m, n );
 
     return cov.get_mat();
 }
 
+
+///
+/// Calculate covariance matrix inverse
+///
+
+arma::mat cov_model::calc_inv_cov(arma::mat const& d, arma::vec const& params) const
+{
+    return arma::inv_sympd(calc_cov(d, params));
+}
+
+
 double* cov_model::calc_inv_cov_gpu_ptr(gpu_mat const& d, arma::vec const& params) const
 {
     RT_ASSERT(nparams == params.n_elem, "Number of given parameters does not match the number expected.");
-    RT_ASSERT(d.n_rows == d.n_cols, "Cannot invert non-square covariance matrix.");
+    RT_ASSERT(d.get_n_rows() == d.get_n_cols(), "Cannot invert non-square covariance matrix.");
 
-    int n = d.n_rows;
+    int n = d.get_n_rows();
 
     gpu_mat A(n,n,0.0);
 
@@ -131,11 +140,41 @@ double* cov_model::calc_inv_cov_gpu_ptr(gpu_mat const& d, arma::vec const& param
 
 arma::mat cov_model::calc_inv_cov_gpu(gpu_mat const& d, arma::vec const& params) const
 {
-    int m = d.n_rows;
-    int n = d.n_cols;
+    int m = d.get_n_rows();
+    int n = d.get_n_cols();
 
     gpu_mat cov( calc_inv_cov_gpu_ptr(d, params), m, n );
 
     return cov.get_mat();
 }
 
+
+
+///
+/// Calculate covariance matrix inverse
+///
+
+
+void cov_model::calc_cov_low_rank(arma::mat const& d, arma::vec const& params, 
+                                  arma::mat& U, arma::vec& C,
+                                  int rank, int over_samp, int qr_iter) const
+{
+    arma::mat Sigma = calc_cov(d, params);
+
+    int l = rank + over_samp;
+    int n = Sigma.n_cols;
+
+    arma::mat Q, Q_tilde, R;
+    RT_ASSERT(arma::qr_econ(Q, R, Sigma * arma::randn(n, l)), "QR failed.");
+
+    for(int i=1; i<qr_iter; ++i)
+    {
+        RT_ASSERT(arma::qr_econ(Q_tilde, R, Sigma.t()*Q), "QR failed.");
+        RT_ASSERT(arma::qr_econ(Q, R, Sigma*Q_tilde), "QR failed.");
+    }
+
+    Q = Q.cols(0,rank-1);
+
+    RT_ASSERT(arma::eig_sym(C, U, Q.t() * Sigma * Q), "Eig_sym failed.");
+    U = Q * U;
+}

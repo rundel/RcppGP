@@ -13,10 +13,6 @@ benchmark_calc_chol_cov <- function(model, d, p, n, gpu = FALSE) {
     .Call('RcppGP_benchmark_calc_chol_cov', PACKAGE = 'RcppGP', model, d, p, n, gpu)
 }
 
-test_gpu_mat <- function(d) {
-    .Call('RcppGP_test_gpu_mat', PACKAGE = 'RcppGP', d)
-}
-
 calc_cov <- function(model, d, p, gpu = FALSE) {
     .Call('RcppGP_calc_cov', PACKAGE = 'RcppGP', model, d, p, gpu)
 }
@@ -27,6 +23,10 @@ calc_inv_cov <- function(model, d, p, gpu = FALSE) {
 
 calc_chol_cov <- function(model, d, p, gpu = FALSE) {
     .Call('RcppGP_calc_chol_cov', PACKAGE = 'RcppGP', model, d, p, gpu)
+}
+
+calc_cov_low_rank <- function(model, d, p, rank, over_samp = 5L, qr_iter = 2L, gpu = FALSE) {
+    .Call('RcppGP_calc_cov_low_rank', PACKAGE = 'RcppGP', model, d, p, rank, over_samp, qr_iter, gpu)
 }
 
 valid_cov_funcs <- function() {
@@ -49,11 +49,47 @@ check_gpu_mem <- function() {
     invisible(.Call('RcppGP_check_gpu_mem', PACKAGE = 'RcppGP'))
 }
 
-init <- function(verbose) {
+init <- function(verbose = FALSE) {
     invisible(.Call('RcppGP_init', PACKAGE = 'RcppGP', verbose))
 }
 
 finalize <- function() {
     invisible(.Call('RcppGP_finalize', PACKAGE = 'RcppGP'))
+}
+
+reset <- function() {
+    invisible(.Call('RcppGP_reset', PACKAGE = 'RcppGP'))
+}
+
+gpu_chol <- function(m, uplo = 'U') {
+    .Call('RcppGP_gpu_chol', PACKAGE = 'RcppGP', m, uplo)
+}
+
+gpu_mat_mult <- function(A, B, opA, opB, swap) {
+    .Call('RcppGP_gpu_mat_mult', PACKAGE = 'RcppGP', A, B, opA, opB, swap)
+}
+
+gpu_fill_rnorm <- function(m, mu, sigma) {
+    .Call('RcppGP_gpu_fill_rnorm', PACKAGE = 'RcppGP', m, mu, sigma)
+}
+
+gpu_rand_prod <- function(m, l) {
+    .Call('RcppGP_gpu_rand_prod', PACKAGE = 'RcppGP', m, l)
+}
+
+gpu_rand_proj <- function(m, rank, over_samp = 5L, qr_iter = 2L) {
+    .Call('RcppGP_gpu_rand_proj', PACKAGE = 'RcppGP', m, rank, over_samp, qr_iter)
+}
+
+gpu_QR_Q <- function(m) {
+    .Call('RcppGP_gpu_QR_Q', PACKAGE = 'RcppGP', m)
+}
+
+gpu_eig_sym <- function(m) {
+    .Call('RcppGP_gpu_eig_sym', PACKAGE = 'RcppGP', m)
+}
+
+gpu_low_rank_sym <- function(m, rank, over_samp = 5L, qr_iter = 2L) {
+    .Call('RcppGP_gpu_low_rank_sym', PACKAGE = 'RcppGP', m, rank, over_samp, qr_iter)
 }
 

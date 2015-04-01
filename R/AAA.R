@@ -1,6 +1,6 @@
 .onLoad = function(lib, pkg) 
 {
-    init()
+    init(FALSE)
 }
 
 .onAttach = function(lib, pkg) 

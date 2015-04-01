@@ -3,16 +3,6 @@
 #include "gpu_mat.hpp"
 #include "cov_model.hpp"
 
-// [[Rcpp::export]]
-arma::mat test_gpu_mat(arma::mat const& d)
-{
-    gpu_mat dist(d);
-
-    Rcpp::Rcout << "rows: " << dist.n_rows << " cols: " << dist.n_cols << "\n";
-
-    return dist.get_mat();
-}
-
 
 // [[Rcpp::export]]
 arma::mat calc_cov(Rcpp::List model, arma::mat d, arma::vec p, bool gpu = false)
@@ -57,4 +47,20 @@ arma::mat calc_chol_cov(Rcpp::List model, arma::mat d, arma::vec p, bool gpu = f
     }
 
     return arma::chol(m.calc_cov(d,p));
+}
+
+// [[Rcpp::export]]
+Rcpp::List calc_cov_low_rank(Rcpp::List model, arma::mat d, arma::vec p,
+                             int rank, int over_samp = 5, int qr_iter = 2,
+                             bool gpu = false)
+{
+    cov_model m(model);
+
+    arma::mat U;
+    arma::vec C;
+
+    m.calc_cov_low_rank(d,p,U,C,rank,over_samp,qr_iter);
+
+    return Rcpp::List::create(Rcpp::Named("C") = Rcpp::as<Rcpp::NumericVector>(Rcpp::wrap(C)),
+                              Rcpp::Named("U") = U);
 }
