@@ -16056,7 +16056,7 @@ else
 fi
 
 
-CUDA_LIBS="-lcudart -lcublas -lcusolver"
+CUDA_LIBS="-lcudart -lcublas -lcusolver -lcurand"
 { $as_echo "$as_me:$LINENO: checking whether this is a 64-bit version of CUDA" >&5
 $as_echo_n "checking whether this is a 64-bit version of CUDA... " >&6; }
 as_ac_File=`$as_echo "ac_cv_file_${CUDA_HOME}/lib64/libcublas.so" | $as_tr_sh`
