@@ -147,12 +147,11 @@ else
     AC_MSG_RESULT([Unable to locate magma library / headers, compiling without gpu support])
 fi
 
-CPPFLAGS+=" -fpic"
+CPPFLAGS+=" -fPIC"
 
-
-AC_MSG_RESULT([CPPFLAGS ${CPPFLAGS}])
-AC_MSG_RESULT([LIBS ${LIBS}])
-AC_MSG_RESULT([LDFLAGS ${LDFLAGS}])
+#AC_MSG_RESULT([CPPFLAGS ${CPPFLAGS}])
+#AC_MSG_RESULT([LIBS ${LIBS}])
+#AC_MSG_RESULT([LDFLAGS ${LDFLAGS}])
 
 
 #################### Makevars ####################

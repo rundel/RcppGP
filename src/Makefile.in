@@ -20,7 +20,7 @@ $(BIN): $(CU_OBJS) $(CPP_OBJS)
 		$(CXX) -shared -o $@ $(CU_OBJS) $(CPP_OBJS) $(LDFLAGS) $(LIBS)
 
 %.o: %.cpp
-		$(CXX) $(CPPFLAGS) -c $< -o $@
+		$(CXX) $(CPPFLAGS) -std=c++11 -c $< -o $@
 
 %.o: %.cu
 		$(NVCC) $(NCFLAGS) -c $< -o $@

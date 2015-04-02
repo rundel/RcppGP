@@ -1,6 +1,6 @@
 Package: RcppGP
 Type: Package
-Title: Tools for efficiently handling calculations use in evaluating Gaussian processes in C++.
+Title: Tools for efficiently handling calculations for Gaussian processes in C++.
 Version: 0.1
 Date: 2013-7-29
 Author: Colin Rundel
@@ -9,3 +9,4 @@ Description: More about what it does (maybe more than one line)
 License: What license is it under?
 Depends: Rcpp (>= 0.10.4), RcppArmadillo (>= 0.3.900.0)
 LinkingTo: Rcpp, RcppArmadillo
+SystemRequirements: C++11
