@@ -25,12 +25,16 @@ m = cov_model(exponential_cov)
 Sigma = calc_cov(m, d, c(2,3), TRUE)
 
 
-z=gpu_rand_proj(Sigma, 500, qr_iter = 2)
 
-z=gpu_low_rank_sym(Sigma, 500, qr_iter = 1)
+z1=gpu_low_rank_sym(Sigma, 1000,5,2)
+z2=calc_low_rank_cov(m,d,c(2,3),1000,5,2,gpu=FALSE)
 
+cov1=z1$U %*% diag(c(z1$C)) %*% t(z1$U)
+cov2=z2$U %*% diag(c(z2$C)) %*% t(z2$U)
 
-m=z$U %*% diag(c(z$C)) %*% t(z$U)
-
-m[1:5,1:5]
+cov1[1:5,1:5]
+cov2[1:5,1:5]
 Sigma[1:5,1:5]
+
+sum((cov1-Sigma)^2)
+sum((cov2-Sigma)^2)

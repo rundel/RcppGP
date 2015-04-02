@@ -75,7 +75,8 @@ arma::mat cov_model::calc_cov(arma::mat const& d, arma::vec const& params) const
     return cov;
 }
 
-double* cov_model::calc_cov_gpu_ptr(gpu_mat const& d, arma::vec const& params) const
+
+gpu_mat cov_model::calc_cov(gpu_mat const& d, arma::vec const& params) const
 {
     RT_ASSERT(nparams == params.n_elem, "Number of given parameters does not match the number expected.");
 
@@ -92,89 +93,7 @@ double* cov_model::calc_cov_gpu_ptr(gpu_mat const& d, arma::vec const& params) c
         cov_func_gpu(type, d.get_const_ptr(), cov.get_ptr(), m, n, 64, mparams);
     }
 
-    return cov.get_gpu_mat();
-}
-
-arma::mat cov_model::calc_cov_gpu(gpu_mat const& d, arma::vec const& params) const
-{
-    int m = d.get_n_rows();
-    int n = d.get_n_cols();
-
-    gpu_mat cov( calc_cov_gpu_ptr(d, params), m, n );
-
-    return cov.get_mat();
+    return cov;
 }
 
 
-///
-/// Calculate covariance matrix inverse
-///
-
-arma::mat cov_model::calc_inv_cov(arma::mat const& d, arma::vec const& params) const
-{
-    return arma::inv_sympd(calc_cov(d, params));
-}
-
-
-double* cov_model::calc_inv_cov_gpu_ptr(gpu_mat const& d, arma::vec const& params) const
-{
-    RT_ASSERT(nparams == params.n_elem, "Number of given parameters does not match the number expected.");
-    RT_ASSERT(d.get_n_rows() == d.get_n_cols(), "Cannot invert non-square covariance matrix.");
-
-    int n = d.get_n_rows();
-
-    gpu_mat A(n,n,0.0);
-
-    for (int i=0; i != nmodels; ++i)
-    {
-        arma::vec mparams = params.elem( model_params[i] );
-        int type = model_funcs[i];
-
-        cov_func_gpu(type, d.get_const_ptr(), A.get_ptr(), n, n, 64, mparams);
-    }
-
-    A.inv_sympd();
-
-    return A.get_gpu_mat();
-}
-
-arma::mat cov_model::calc_inv_cov_gpu(gpu_mat const& d, arma::vec const& params) const
-{
-    int m = d.get_n_rows();
-    int n = d.get_n_cols();
-
-    gpu_mat cov( calc_inv_cov_gpu_ptr(d, params), m, n );
-
-    return cov.get_mat();
-}
-
-
-
-///
-/// Calculate covariance matrix inverse
-///
-
-
-void cov_model::calc_cov_low_rank(arma::mat const& d, arma::vec const& params, 
-                                  arma::mat& U, arma::vec& C,
-                                  int rank, int over_samp, int qr_iter) const
-{
-    arma::mat Sigma = calc_cov(d, params);
-
-    int l = rank + over_samp;
-    int n = Sigma.n_cols;
-
-    arma::mat Q, Q_tilde, R;
-    RT_ASSERT(arma::qr_econ(Q, R, Sigma * arma::randn(n, l)), "QR failed.");
-
-    for(int i=1; i<qr_iter; ++i)
-    {
-        RT_ASSERT(arma::qr_econ(Q_tilde, R, Sigma.t()*Q), "QR failed.");
-        RT_ASSERT(arma::qr_econ(Q, R, Sigma*Q_tilde), "QR failed.");
-    }
-
-    Q = Q.cols(0,rank-1);
-
-    RT_ASSERT(arma::eig_sym(C, U, Q.t() * Sigma * Q), "Eig_sym failed.");
-    U = Q * U;
-}

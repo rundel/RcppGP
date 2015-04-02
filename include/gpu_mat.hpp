@@ -15,6 +15,14 @@ private:
     void alloc_mat();
 
 public:
+
+    // Disable copy constructors
+    gpu_mat(const gpu_mat&) = delete;
+    gpu_mat& operator=(const gpu_mat&) = delete;
+
+    gpu_mat(gpu_mat&& rhs);
+    gpu_mat& operator=(gpu_mat&& rhs);
+
     gpu_mat();
     gpu_mat(arma::mat const& m);
     gpu_mat(int r, int c);
@@ -29,11 +37,11 @@ public:
     arma::mat get_mat();
     double const* get_const_ptr() const;
     double* get_ptr();
-    double* get_gpu_mat();
-    double* get_copy();
+
+    gpu_mat make_copy();
 
     void assign(gpu_mat& g);
-    void swap_mat(gpu_mat& g);
+    void swap(gpu_mat& g);
 
     bool is_allocated() const;
 
@@ -45,9 +53,9 @@ public:
     void rand_proj(gpu_mat const& A, int rank, int over_samp, int qr_iter);
     void rand_prod(int l);
     void fill_rnorm(double mu, double sigma);
-    void mat_mult(gpu_mat const& Y, char op_X, char op_Y, bool swap);
+    void mat_mult(gpu_mat const& Y, char op_X, char op_Y, bool swap_order);
     void eig_sym(arma::vec& vals);
-    void low_rank_sym(arma::vec& C, int rank, int over_samp, int qr_iter);
+    void low_rank_sympd(arma::vec& C, int rank, int over_samp, int qr_iter);
 };
 
 #endif

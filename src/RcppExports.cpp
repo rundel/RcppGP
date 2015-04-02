@@ -6,51 +6,6 @@
 
 using namespace Rcpp;
 
-// benchmark_calc_cov
-double benchmark_calc_cov(Rcpp::List model, arma::mat d, arma::vec p, int n, bool gpu);
-RcppExport SEXP RcppGP_benchmark_calc_cov(SEXP modelSEXP, SEXP dSEXP, SEXP pSEXP, SEXP nSEXP, SEXP gpuSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject __result;
-    Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< Rcpp::List >::type model(modelSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type d(dSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type p(pSEXP);
-    Rcpp::traits::input_parameter< int >::type n(nSEXP);
-    Rcpp::traits::input_parameter< bool >::type gpu(gpuSEXP);
-    __result = Rcpp::wrap(benchmark_calc_cov(model, d, p, n, gpu));
-    return __result;
-END_RCPP
-}
-// benchmark_calc_inv_cov
-double benchmark_calc_inv_cov(Rcpp::List model, arma::mat d, arma::vec p, int n, bool gpu);
-RcppExport SEXP RcppGP_benchmark_calc_inv_cov(SEXP modelSEXP, SEXP dSEXP, SEXP pSEXP, SEXP nSEXP, SEXP gpuSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject __result;
-    Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< Rcpp::List >::type model(modelSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type d(dSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type p(pSEXP);
-    Rcpp::traits::input_parameter< int >::type n(nSEXP);
-    Rcpp::traits::input_parameter< bool >::type gpu(gpuSEXP);
-    __result = Rcpp::wrap(benchmark_calc_inv_cov(model, d, p, n, gpu));
-    return __result;
-END_RCPP
-}
-// benchmark_calc_chol_cov
-double benchmark_calc_chol_cov(Rcpp::List model, arma::mat d, arma::vec p, int n, bool gpu);
-RcppExport SEXP RcppGP_benchmark_calc_chol_cov(SEXP modelSEXP, SEXP dSEXP, SEXP pSEXP, SEXP nSEXP, SEXP gpuSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject __result;
-    Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< Rcpp::List >::type model(modelSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type d(dSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type p(pSEXP);
-    Rcpp::traits::input_parameter< int >::type n(nSEXP);
-    Rcpp::traits::input_parameter< bool >::type gpu(gpuSEXP);
-    __result = Rcpp::wrap(benchmark_calc_chol_cov(model, d, p, n, gpu));
-    return __result;
-END_RCPP
-}
 // calc_cov
 arma::mat calc_cov(Rcpp::List model, arma::mat d, arma::vec p, bool gpu);
 RcppExport SEXP RcppGP_calc_cov(SEXP modelSEXP, SEXP dSEXP, SEXP pSEXP, SEXP gpuSEXP) {
@@ -79,23 +34,9 @@ BEGIN_RCPP
     return __result;
 END_RCPP
 }
-// calc_chol_cov
-arma::mat calc_chol_cov(Rcpp::List model, arma::mat d, arma::vec p, bool gpu);
-RcppExport SEXP RcppGP_calc_chol_cov(SEXP modelSEXP, SEXP dSEXP, SEXP pSEXP, SEXP gpuSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject __result;
-    Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< Rcpp::List >::type model(modelSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type d(dSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type p(pSEXP);
-    Rcpp::traits::input_parameter< bool >::type gpu(gpuSEXP);
-    __result = Rcpp::wrap(calc_chol_cov(model, d, p, gpu));
-    return __result;
-END_RCPP
-}
-// calc_cov_low_rank
-Rcpp::List calc_cov_low_rank(Rcpp::List model, arma::mat d, arma::vec p, int rank, int over_samp, int qr_iter, bool gpu);
-RcppExport SEXP RcppGP_calc_cov_low_rank(SEXP modelSEXP, SEXP dSEXP, SEXP pSEXP, SEXP rankSEXP, SEXP over_sampSEXP, SEXP qr_iterSEXP, SEXP gpuSEXP) {
+// calc_low_rank_cov
+Rcpp::List calc_low_rank_cov(Rcpp::List model, arma::mat d, arma::vec p, int rank, int over_samp, int qr_iter, bool gpu);
+RcppExport SEXP RcppGP_calc_low_rank_cov(SEXP modelSEXP, SEXP dSEXP, SEXP pSEXP, SEXP rankSEXP, SEXP over_sampSEXP, SEXP qr_iterSEXP, SEXP gpuSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
     Rcpp::RNGScope __rngScope;
@@ -106,7 +47,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type over_samp(over_sampSEXP);
     Rcpp::traits::input_parameter< int >::type qr_iter(qr_iterSEXP);
     Rcpp::traits::input_parameter< bool >::type gpu(gpuSEXP);
-    __result = Rcpp::wrap(calc_cov_low_rank(model, d, p, rank, over_samp, qr_iter, gpu));
+    __result = Rcpp::wrap(calc_low_rank_cov(model, d, p, rank, over_samp, qr_iter, gpu));
     return __result;
 END_RCPP
 }

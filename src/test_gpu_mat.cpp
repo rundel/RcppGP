@@ -44,6 +44,9 @@ arma::mat gpu_rand_prod(arma::mat m, int l)
 arma::mat gpu_rand_proj(arma::mat m, int rank, int over_samp = 5, int qr_iter = 2)
 {
     gpu_mat g(m);
+
+    Rcpp::Rcout << "Rand Proj Init (" << g.get_n_rows() << ", " << g.get_n_cols() << ")\n";
+
     g.rand_proj(rank, over_samp, qr_iter);
 
     return g.get_mat();
@@ -77,7 +80,7 @@ Rcpp::List gpu_low_rank_sym(arma::mat m, int rank, int over_samp = 5, int qr_ite
     arma::vec vals;
     gpu_mat g(m);
 
-    g.low_rank_sym(vals, rank, over_samp, qr_iter);
+    g.low_rank_sympd(vals, rank, over_samp, qr_iter);
 
     return Rcpp::List::create(Rcpp::Named("C") = Rcpp::as<Rcpp::NumericVector>(Rcpp::wrap(vals)),
                               Rcpp::Named("U") = g.get_mat());
