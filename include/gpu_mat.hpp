@@ -31,31 +31,21 @@ public:
 
     ~gpu_mat();
 
+    void release();
+
     int get_n_rows() const;
     int get_n_cols() const;
 
-    arma::mat get_mat();
+    arma::mat get_mat() const;
     double const* get_const_ptr() const;
     double* get_ptr();
 
-    gpu_mat make_copy();
+    gpu_mat make_copy() const;
 
     void assign(gpu_mat& g);
     void swap(gpu_mat& g);
 
     bool is_allocated() const;
-
-    void QR_Q();
-    void chol(char uplo);
-    void inv_chol(char uplo);
-    void inv_sympd();
-    void rand_proj(int rank, int over_samp, int qr_iter);
-    void rand_proj(gpu_mat const& A, int rank, int over_samp, int qr_iter);
-    void rand_prod(int l);
-    void fill_rnorm(double mu, double sigma);
-    void mat_mult(gpu_mat const& Y, char op_X, char op_Y, bool swap_order);
-    void eig_sym(arma::vec& vals);
-    void low_rank_sympd(arma::vec& C, int rank, int over_samp, int qr_iter);
 };
 
 #endif

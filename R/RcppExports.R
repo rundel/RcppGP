@@ -5,12 +5,8 @@ calc_cov <- function(model, d, p, gpu = FALSE) {
     .Call('RcppGP_calc_cov', PACKAGE = 'RcppGP', model, d, p, gpu)
 }
 
-calc_inv_cov <- function(model, d, p, gpu = FALSE) {
-    .Call('RcppGP_calc_inv_cov', PACKAGE = 'RcppGP', model, d, p, gpu)
-}
-
-calc_low_rank_cov <- function(model, d, p, rank, over_samp = 5L, qr_iter = 2L, gpu = FALSE) {
-    .Call('RcppGP_calc_low_rank_cov', PACKAGE = 'RcppGP', model, d, p, rank, over_samp, qr_iter, gpu)
+calc_inv_cov <- function(model, d, p, nug, d_btw, d_knots, rank = 1L, over_samp = 0L, qr_iter = 0L, gpu = FALSE, low_rank = FALSE, pred_proc = FALSE, mod = FALSE) {
+    .Call('RcppGP_calc_inv_cov', PACKAGE = 'RcppGP', model, d, p, nug, d_btw, d_knots, rank, over_samp, qr_iter, gpu, low_rank, pred_proc, mod)
 }
 
 valid_cov_funcs <- function() {
@@ -49,8 +45,20 @@ gpu_chol <- function(m, uplo = 'U') {
     .Call('RcppGP_gpu_chol', PACKAGE = 'RcppGP', m, uplo)
 }
 
-gpu_mat_mult <- function(A, B, opA, opB, swap) {
-    .Call('RcppGP_gpu_mat_mult', PACKAGE = 'RcppGP', A, B, opA, opB, swap)
+gpu_diag_add <- function(m, d) {
+    .Call('RcppGP_gpu_diag_add', PACKAGE = 'RcppGP', m, d)
+}
+
+gpu_scale <- function(m, s) {
+    .Call('RcppGP_gpu_scale', PACKAGE = 'RcppGP', m, s)
+}
+
+gpu_mat_diag_mult <- function(m, d, side) {
+    .Call('RcppGP_gpu_mat_diag_mult', PACKAGE = 'RcppGP', m, d, side)
+}
+
+gpu_mat_mult <- function(A, B, opA, opB) {
+    .Call('RcppGP_gpu_mat_mult', PACKAGE = 'RcppGP', A, B, opA, opB)
 }
 
 gpu_fill_rnorm <- function(m, mu, sigma) {
@@ -75,5 +83,17 @@ gpu_eig_sym <- function(m) {
 
 gpu_low_rank_sym <- function(m, rank, over_samp = 5L, qr_iter = 2L) {
     .Call('RcppGP_gpu_low_rank_sym', PACKAGE = 'RcppGP', m, rank, over_samp, qr_iter)
+}
+
+gpu_low_rank_sym_op <- function(m, rank, over_samp = 5L, qr_iter = 2L) {
+    .Call('RcppGP_gpu_low_rank_sym_op', PACKAGE = 'RcppGP', m, rank, over_samp, qr_iter)
+}
+
+gpu_inv_sympd <- function(m) {
+    .Call('RcppGP_gpu_inv_sympd', PACKAGE = 'RcppGP', m)
+}
+
+gpu_inv_lr <- function(m, tau, rank, over_samp, qr_iter, mod) {
+    .Call('RcppGP_gpu_inv_lr', PACKAGE = 'RcppGP', m, tau, rank, over_samp, qr_iter, mod)
 }
 
