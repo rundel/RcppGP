@@ -1,0 +1,8 @@
+image: rocker/hadleyverse
+
+git:
+  path: github.com/rundel/RcppGP
+
+script:
+  - Rscript -e "1+1"
+  - Rscript -e "library(dplyr)"
