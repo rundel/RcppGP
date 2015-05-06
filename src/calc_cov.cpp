@@ -8,6 +8,30 @@
 
 
 // [[Rcpp::export]]
+Rcpp::List calc_low_rank(arma::mat cov, int rank,
+                         int over_samp = 0, int qr_iter = 2,
+                         bool gpu = false)
+{
+    RT_ASSERT(cov.n_rows==cov.n_cols,"Cov matrix must be symmetric");
+
+    arma::mat U;
+    arma::vec C;
+
+    if (gpu)
+    {
+        U = low_rank_sympd(gpu_mat(cov), C, rank, over_samp, qr_iter).get_mat();
+    }
+    else
+    {
+        low_rank_sympd(cov, U, C, rank, over_samp, qr_iter);
+    }
+
+    return Rcpp::List::create(Rcpp::Named("C") = C,
+                              Rcpp::Named("U") = U);
+}
+
+
+// [[Rcpp::export]]
 arma::mat calc_cov(Rcpp::List model, arma::mat d, arma::vec p, bool gpu = false)
 {
     cov_model m(model);

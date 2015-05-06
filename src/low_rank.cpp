@@ -12,7 +12,7 @@ arma::mat rand_proj(arma::mat const& A, int rank, int over_samp, int qr_iter)
     arma::mat Q, Q_tilde, R;
     RT_ASSERT(arma::qr_econ(Q, R, A * arma::randn(n, l)), "QR failed.");
 
-    for(int i=1; i<qr_iter; ++i)
+    for(int i=0; i<qr_iter; ++i)
     {
         RT_ASSERT(arma::qr_econ(Q_tilde, R, A.t()*Q), "QR failed.");
         RT_ASSERT(arma::qr_econ(Q, R, A*Q_tilde), "QR failed.");

@@ -6,6 +6,21 @@
 
 using namespace Rcpp;
 
+// calc_low_rank
+Rcpp::List calc_low_rank(arma::mat cov, int rank, int over_samp, int qr_iter, bool gpu);
+RcppExport SEXP RcppGP_calc_low_rank(SEXP covSEXP, SEXP rankSEXP, SEXP over_sampSEXP, SEXP qr_iterSEXP, SEXP gpuSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< arma::mat >::type cov(covSEXP);
+    Rcpp::traits::input_parameter< int >::type rank(rankSEXP);
+    Rcpp::traits::input_parameter< int >::type over_samp(over_sampSEXP);
+    Rcpp::traits::input_parameter< int >::type qr_iter(qr_iterSEXP);
+    Rcpp::traits::input_parameter< bool >::type gpu(gpuSEXP);
+    __result = Rcpp::wrap(calc_low_rank(cov, rank, over_samp, qr_iter, gpu));
+    return __result;
+END_RCPP
+}
 // calc_cov
 arma::mat calc_cov(Rcpp::List model, arma::mat d, arma::vec p, bool gpu);
 RcppExport SEXP RcppGP_calc_cov(SEXP modelSEXP, SEXP dSEXP, SEXP pSEXP, SEXP gpuSEXP) {
