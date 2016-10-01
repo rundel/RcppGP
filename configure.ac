@@ -49,9 +49,9 @@ NVCC=${CUDA_HOME}/bin/nvcc
 AC_CHECK_FILE([${NVCC}], [], [USE_GPU=no])
 
 AC_ARG_WITH([arch],
-    [AC_HELP_STRING([--with-arch=SM],[compute capability of the target device @<:@sm_20@:>@])],
+    [AC_HELP_STRING([--with-arch=SM],[compute capability of the target device @<:@sm_30@:>@])],
     [ARCH="$withval"],
-    [ARCH=sm_20]
+    [ARCH=sm_30]
 )
 AC_MSG_RESULT([Setting CUDA compute capability to ${ARCH}])
 
