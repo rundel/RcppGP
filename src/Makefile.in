@@ -4,26 +4,27 @@ BIN               := RcppGP.so
 NVCC              := @NVCC@
 
 # flags
-R_CPPFLAGS := $(shell $(R_HOME)/bin/R CMD config --cppflags)
-R_LDFLAGS  := $(shell $(R_HOME)/bin/R CMD config --ldflags)
-R_BLAS	   := $(shell $(R_HOME)/bin/R CMD config BLAS_LIBS)
-R_LAPACK   := $(shell $(R_HOME)/bin/R CMD config LAPACK_LIBS)
+R_CPICFLAGS := $(shell ${R_HOME}/bin/R CMD config CPICFLAGS)
+R_CPPFLAGS  := $(shell $(R_HOME)/bin/R CMD config --cppflags)
+R_LDFLAGS   := $(shell $(R_HOME)/bin/R CMD config --ldflags)
+R_BLAS	    := $(shell $(R_HOME)/bin/R CMD config BLAS_LIBS)
+R_LAPACK    := $(shell $(R_HOME)/bin/R CMD config LAPACK_LIBS)
 
 RCPP_CXXFLAGS := $(shell $(R_HOME)/bin/Rscript -e 'Rcpp:::CxxFlags()')
 RCPP_LDFLAGS  := $(shell $(R_HOME)/bin/Rscript -e 'Rcpp:::LdFlags()')
 ARMA_CXXFLAGS := $(shell $(R_HOME)/bin/Rscript -e 'RcppArmadillo:::CxxFlags()')
 
-LIBS              := @LIBS@ $(R_BLAS) $(R_LAPACK)
-LDFLAGS           := @LDFLAGS@ $(R_LDFLAGS) $(RCPP_LDFLAGS)
-CPPFLAGS          := @CPPFLAGS@ $(R_CPPFLAGS) -I../include
-CXXFLAGS		  := @CXXFLAGS@ $(RCPP_CXXFLAGS) $(ARMA_CXXFLAGS)
-NVCC_FLAGS        := @NVCC_FLAGS@ -I../include
+LIBS        := @LIBS@ $(R_BLAS) $(R_LAPACK)
+LDFLAGS     := @LDFLAGS@ $(R_LDFLAGS) $(RCPP_LDFLAGS)
+CPPFLAGS    := @CPPFLAGS@ $(R_CPPFLAGS) $(R_CPICFLAGS) -I../include
+CXXFLAGS    := @CXXFLAGS@ $(RCPP_CXXFLAGS) $(ARMA_CXXFLAGS)
+NVCC_CFLAGS := @NVCC_CFLAGS@ -I../include
 
 # files
-CPP_SOURCES       := $(wildcard *.cpp)
-CU_SOURCES        := @CU_FILES@
-CPP_OBJS          := $(patsubst %.cpp, %.o, $(CPP_SOURCES))
-CU_OBJS           := $(patsubst %.cu, %.o, $(CU_SOURCES))
+CPP_SOURCES := $(wildcard *.cpp)
+CU_SOURCES  := @CU_FILES@
+CPP_OBJS    := $(patsubst %.cpp, %.o, $(CPP_SOURCES))
+CU_OBJS     := $(patsubst %.cu, %.o, $(CU_SOURCES))
 
 $(BIN): $(CU_OBJS) $(CPP_OBJS)
 	$(CXX) -shared -o $@ $(CU_OBJS) $(CPP_OBJS) $(LDFLAGS) $(LIBS)
@@ -32,7 +33,7 @@ $(BIN): $(CU_OBJS) $(CPP_OBJS)
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -std=c++11 -c $< -o $@
 
 %.o: %.cu
-	$(NVCC) $(NVCC_FLAGS) -c $< -o $@
+	$(NVCC) $(NVCC_CFLAGS) -std=c++11 -c $< -o $@
 
 all: $(BIN) 
 

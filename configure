@@ -623,7 +623,7 @@ ac_includes_default="\
 
 ac_subst_vars='LTLIBOBJS
 LIBOBJS
-NVCC_FLAGS
+NVCC_CFLAGS
 NVCC
 CU_FILES
 EGREP
