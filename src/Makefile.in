@@ -2,13 +2,22 @@ BIN               := RcppGP.so
 
 # compilers
 NVCC              := @NVCC@
-#CXX              := @CXX@
 
 # flags
-LIBS              := @LIBS@ $(RCPP_LIBS)
-LDFLAGS           := @LDFLAGS@
-CPPFLAGS          := @CPPFLAGS@ -I../include
-NCFLAGS           := @NCFLAGS@ -I../include
+R_CPPFLAGS := $(shell $(R_HOME)/bin/R CMD config --cppflags)
+R_LDFLAGS  := $(shell $(R_HOME)/bin/R CMD config --ldflags)
+R_BLAS	   := $(shell $(R_HOME)/bin/R CMD config BLAS_LIBS)
+R_LAPACK   := $(shell $(R_HOME)/bin/R CMD config LAPACK_LIBS)
+
+RCPP_CXXFLAGS := $(shell $(R_HOME)/bin/Rscript -e 'Rcpp:::CxxFlags()')
+RCPP_LDFLAGS  := $(shell $(R_HOME)/bin/Rscript -e 'Rcpp:::LdFlags()')
+ARMA_CXXFLAGS := $(shell $(R_HOME)/bin/Rscript -e 'RcppArmadillo:::CxxFlags()')
+
+LIBS              := @LIBS@ $(R_BLAS) $(R_LAPACK)
+LDFLAGS           := @LDFLAGS@ $(R_LDFLAGS) $(RCPP_LDFLAGS)
+CPPFLAGS          := @CPPFLAGS@ $(R_CPPFLAGS) -I../include
+CXXFLAGS		  := @CXXFLAGS@ $(RCPP_CXXFLAGS) $(ARMA_CXXFLAGS)
+NVCC_FLAGS        := @NVCC_FLAGS@ -I../include
 
 # files
 CPP_SOURCES       := $(wildcard *.cpp)
@@ -17,15 +26,15 @@ CPP_OBJS          := $(patsubst %.cpp, %.o, $(CPP_SOURCES))
 CU_OBJS           := $(patsubst %.cu, %.o, $(CU_SOURCES))
 
 $(BIN): $(CU_OBJS) $(CPP_OBJS)
-		$(CXX) -shared -o $@ $(CU_OBJS) $(CPP_OBJS) $(LDFLAGS) $(LIBS)
+	$(CXX) -shared -o $@ $(CU_OBJS) $(CPP_OBJS) $(LDFLAGS) $(LIBS)
 
 %.o: %.cpp
-		$(CXX) $(CPPFLAGS) -std=c++11 -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -std=c++11 -c $< -o $@
 
 %.o: %.cu
-		$(NVCC) $(NCFLAGS) -c $< -o $@
+	$(NVCC) $(NVCC_FLAGS) -c $< -o $@
 
 all: $(BIN) 
 
 clean:
-		rm -f *.o
+	rm -f *.o
