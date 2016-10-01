@@ -1,5 +1,5 @@
 #include <RcppArmadillo.h>
-#include "assert.hpp"
+#include <boost/assert.hpp>
 
 // [[Rcpp::export]]
 arma::mat euclid(arma::mat X, arma::mat Y)
@@ -7,7 +7,7 @@ arma::mat euclid(arma::mat X, arma::mat Y)
     int n = X.n_rows;
     int m = Y.n_rows;
 
-    RT_ASSERT(X.n_cols==Y.n_cols, "Dimension mismatch between coordinates.");
+    BOOST_ASSERT_MSG(X.n_cols==Y.n_cols, "Dimension mismatch between coordinates.");
 
     arma::mat D(n,m);
     for(int i=0; i!=n; ++i)

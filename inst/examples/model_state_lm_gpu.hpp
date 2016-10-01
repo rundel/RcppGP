@@ -198,7 +198,7 @@ struct model_state_lm_gpu
 
     void update_theta(arma::vec const& jump)
     {
-        RT_ASSERT(jump.n_elem == m->param_nfree, "Jump size differs from number of free covariance parameters.");
+        BOOST_ASSERT_MSG(jump.n_elem == m->param_nfree, "Jump size differs from number of free covariance parameters.");
 
         for (int i=0; i!=m->param_nfree; ++i) 
         {

@@ -1,6 +1,6 @@
 #include <boost/timer/timer.hpp>
 
-#include "assert.hpp"
+#include <boost/assert.hpp>
 #include "report.hpp"
 #include "spGLM.hpp"
 #include "distributions.hpp"
@@ -51,12 +51,12 @@ SEXP spGLM(SEXP Y_r, SEXP X_r,
     if (beta_prior == "normal")
     {
         Rcpp::List beta_hyperparam_list = Rcpp::as<Rcpp::List>(beta_settings["hyperparam"]);
-        RT_ASSERT(beta_hyperparam_list.size() == 2, "Beta normal prior must have 2 hyper parameters (mu and sd).");
+        BOOST_ASSERT_MSG(beta_hyperparam_list.size() == 2, "Beta normal prior must have 2 hyper parameters (mu and sd).");
 
         for(int i=0; i!=beta_hyperparam_list.size(); ++i)
         {
             beta_hyperparam.push_back( Rcpp::as<arma::vec>(beta_hyperparam_list[i]) );
-            RT_ASSERT(beta_hyperparam[i].size() == p, "Length of hyperparameter must match number of betas.");
+            BOOST_ASSERT_MSG(beta_hyperparam[i].size() == p, "Length of hyperparameter must match number of betas.");
         }
     }
 

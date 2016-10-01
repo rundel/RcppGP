@@ -3,7 +3,7 @@
 
 #include <boost/timer/timer.hpp>
 
-#include "assert.hpp"
+#include <boost/assert.hpp>
 #include "report.hpp"
 
 #include "adapt_mcmc.hpp"
@@ -50,14 +50,14 @@ BEGIN_RCPP
     if (beta_prior.type == "normal")
     {
         Rcpp::List beta_hyperparam_list = Rcpp::as<Rcpp::List>(beta_settings["hyperparam"]);
-        RT_ASSERT(beta_hyperparam_list.size() == 2, "Beta normal prior must have 2 hyper parameters (mu and sd).");
+        BOOST_ASSERT_MSG(beta_hyperparam_list.size() == 2, "Beta normal prior must have 2 hyper parameters (mu and sd).");
 
         
         beta_prior.mu    = Rcpp::as<arma::vec>(beta_hyperparam_list[0]);
         beta_prior.sigma = Rcpp::as<arma::vec>(beta_hyperparam_list[1]);
 
-        RT_ASSERT(beta_prior.mu.size()    == p, "Length of hyperparameter mu must match number of betas.");
-        RT_ASSERT(beta_prior.sigma.size() == p, "Length of hyperparameter sigma must match number of betas.");
+        BOOST_ASSERT_MSG(beta_prior.mu.size()    == p, "Length of hyperparameter mu must match number of betas.");
+        BOOST_ASSERT_MSG(beta_prior.sigma.size() == p, "Length of hyperparameter sigma must match number of betas.");
     }
 
     int n_samples = Rcpp::as<int>(n_samples_r);

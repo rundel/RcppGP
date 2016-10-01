@@ -1,6 +1,5 @@
 #include <math_functions.h>
-
-#include "assert.hpp"
+#include <assert.h>
 
 __global__ void symmatu_kernel(double* M, const int n, const int n_tri)
 {
@@ -31,12 +30,14 @@ void symmat(double* M, const int n, char type, const int n_threads)
     }
     else if (type == 'L' || type == 'l')
     {
-        RT_ASSERT(false, "symmatl not currently supported.");
+        assert(false);
+        //BOOST_ASSERT_MSG(false, "symmatl not currently supported.");
         //symmatl_kernel<<<blocks, n_threads>>>(m, n, nn);
     }
     else
     {
-        RT_ASSERT(false, "Unknown type, must be U or L");
+        assert(false);
+        //BOOST_ASSERT_MSG(false, "Unknown type, must be U or L");
     }
 
     cudaDeviceSynchronize();
@@ -72,12 +73,14 @@ void trimat(double* M, const int n, const char type, const double val, const int
     }
     else if (type == 'L' || type == 'l')
     {
-        RT_ASSERT(false, "symmatl not currently supported.");
+        assert(false);
+        //BOOST_ASSERT_MSG(false, "symmatl not currently supported.");
         //symmatl_kernel<<<blocks, n_threads>>>(m, n, nn);
     }
     else
     {
-        RT_ASSERT(false, "Unknown type, must be U or L");
+        assert(false);
+        //BOOST_ASSERT_MSG(false, "Unknown type, must be U or L");
     }
 
     cudaDeviceSynchronize();

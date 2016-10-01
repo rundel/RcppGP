@@ -40,8 +40,8 @@ struct model_state_glm
 
     void update_theta(double jump, int i)
     {
-        RT_ASSERT(i >= 0 & i < m->nparams, "index must be between 0 and the number of parameters.");
-        RT_ASSERT(m->param_dists[i] != fixed_dist, "unable to evaluate jump for fixed parameter.");
+        BOOST_ASSERT_MSG(i >= 0 & i < m->nparams, "index must be between 0 and the number of parameters.");
+        BOOST_ASSERT_MSG(m->param_dists[i] != fixed_dist, "unable to evaluate jump for fixed parameter.");
 
         int j = m->param_free_index[i];
         theta[j] = param_update(m->param_trans[j], theta[j], jump, m->param_hyper[j]);
@@ -49,7 +49,7 @@ struct model_state_glm
 
     void update_theta(arma::vec const& jump)
     {
-        RT_ASSERT(jump.n_elem == m->param_nfree, "Jump size differs from number of free covariance parameters.");
+        BOOST_ASSERT_MSG(jump.n_elem == m->param_nfree, "Jump size differs from number of free covariance parameters.");
 
         for (int i=0; i!=m->param_nfree; ++i) 
         {
@@ -84,7 +84,7 @@ struct model_state_glm
     {
         if (prior == "normal") 
         {
-            RT_ASSERT(beta_hyperp.size() == 2, "Beta normal prior expects 2 hyperparameters.");
+            BOOST_ASSERT_MSG(beta_hyperp.size() == 2, "Beta normal prior expects 2 hyperparameters.");
             loglik_beta = arma::accu( -arma::log(beta_hyperp[1]) - 0.5 * arma::square( (beta - beta_hyperp[0])/beta_hyperp[1]) );
         }
         else if (prior == "flat")
@@ -193,7 +193,7 @@ struct model_state_glm_pp
 
     void update_theta(arma::vec const& jump)
     {
-        RT_ASSERT(jump.n_elem == m->param_nfree, "Jump size differs from number of free covariance parameters.");
+        BOOST_ASSERT_MSG(jump.n_elem == m->param_nfree, "Jump size differs from number of free covariance parameters.");
 
         for (int i=0; i!=m->param_nfree; ++i) 
         {
@@ -247,7 +247,7 @@ struct model_state_glm_pp
     {
         if (prior == "normal") 
         {
-            RT_ASSERT(beta_hyperp.size() == 2, "Beta normal prior expects 2 hyperparameters.");
+            BOOST_ASSERT_MSG(beta_hyperp.size() == 2, "Beta normal prior expects 2 hyperparameters.");
             loglik_beta = arma::accu( -arma::log(beta_hyperp[1]) - 0.5 * arma::square((beta - beta_hyperp[0])/beta_hyperp[1]) );
         }
         else if (prior == "flat")

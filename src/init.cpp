@@ -1,7 +1,7 @@
 #include <RcppArmadillo.h>
 
 #include "cuda_util.hpp"
-#include "assert.hpp"
+#include <boost/assert.hpp>
 
 #ifdef USE_GPU
 #include <magma.h>
@@ -30,7 +30,7 @@ void init(bool verbose = false)
     if( s != CUBLAS_STATUS_SUCCESS ) 
     {
         magma_finalize();
-        RT_ASSERT(false, cublas_error(s));
+        BOOST_ASSERT_MSG(false, cublas_error(s));
     }
     if (verbose) {
         //magma_print_devices();

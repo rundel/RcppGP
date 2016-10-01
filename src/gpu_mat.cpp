@@ -1,4 +1,4 @@
-#include "assert.hpp"
+#include <boost/assert.hpp>
 #include "gpu_mat.hpp"
 
 
@@ -25,7 +25,7 @@ int gpu_mat::get_n_cols() const
 void gpu_mat::alloc_mat()
 {
     cudaError s = cudaMalloc((void**)&mat, n_rows*n_cols*sizeof(double));
-    RT_ASSERT(s==cudaSuccess, "CUDA allocation failed");
+    BOOST_ASSERT_MSG(s==cudaSuccess, "CUDA allocation failed");
 
     allocated = true;
 }
@@ -103,7 +103,7 @@ bool gpu_mat::is_allocated() const
 
 arma::mat gpu_mat::get_mat() const
 {
-    RT_ASSERT(allocated,"CUDA matrix not allocated");
+    BOOST_ASSERT_MSG(allocated,"CUDA matrix not allocated");
 
     arma::mat m(n_rows, n_cols);
 
@@ -114,21 +114,21 @@ arma::mat gpu_mat::get_mat() const
 
 double* gpu_mat::get_ptr()
 {
-    RT_ASSERT(allocated,"CUDA matrix not allocated");
+    BOOST_ASSERT_MSG(allocated,"CUDA matrix not allocated");
 
     return mat;
 }
 
 double const* gpu_mat::get_const_ptr() const
 {
-    RT_ASSERT(allocated,"CUDA matrix not allocated");
+    BOOST_ASSERT_MSG(allocated,"CUDA matrix not allocated");
 
     return mat;
 }
 
 void gpu_mat::assign(gpu_mat& g)
 {
-    RT_ASSERT(!allocated,"CUDA matrix being assigned to must not be allocated");
+    BOOST_ASSERT_MSG(!allocated,"CUDA matrix being assigned to must not be allocated");
 
     allocated = TRUE;
     n_rows = g.n_rows;
@@ -142,7 +142,7 @@ void gpu_mat::assign(gpu_mat& g)
 
 void gpu_mat::swap(gpu_mat &g)
 {
-    RT_ASSERT(allocated & g.allocated,"Both CUDA matrices must be allocated");
+    BOOST_ASSERT_MSG(allocated & g.allocated,"Both CUDA matrices must be allocated");
 
     std::swap(mat, g.mat);
     std::swap(n_rows, g.n_rows);
@@ -154,7 +154,7 @@ gpu_mat gpu_mat::make_copy() const
 {
     // Caller takes ownership of memory
 
-    RT_ASSERT(allocated,"CUDA matrix not allocated");
+    BOOST_ASSERT_MSG(allocated,"CUDA matrix not allocated");
 
     gpu_mat new_mat(n_rows, n_cols);
 
@@ -248,23 +248,23 @@ void gpu_mat::QR_Q()
 
 void gpu_mat::chol(char uplo)
 {
-    RT_ASSERT(n_rows==n_cols, "Matrix must be square.");
-    RT_ASSERT(uplo=='U' || uplo=='L', "uplo must be U or L.");
+    BOOST_ASSERT_MSG(n_rows==n_cols, "Matrix must be square.");
+    BOOST_ASSERT_MSG(uplo=='U' || uplo=='L', "uplo must be U or L.");
 
     mat = uplo=='U' ? arma::chol(mat, "upper") : arma::chol(mat, "lower");
 }
 
 void gpu_mat::inv_chol(char uplo)
 {
-    RT_ASSERT(n_rows == n_cols, "Matrix must be square.");
-    RT_ASSERT(uplo=='U' || uplo=='L', "uplo must be U or L.");
+    BOOST_ASSERT_MSG(n_rows == n_cols, "Matrix must be square.");
+    BOOST_ASSERT_MSG(uplo=='U' || uplo=='L', "uplo must be U or L.");
 
     mat = arma::inv(mat);
 }
 
 void gpu_mat::inv_sympd()
 {
-    RT_ASSERT(n_rows == n_cols, "Matrix must be square.");
+    BOOST_ASSERT_MSG(n_rows == n_cols, "Matrix must be square.");
 
     mat = arma::inv_sympd(mat);
 }

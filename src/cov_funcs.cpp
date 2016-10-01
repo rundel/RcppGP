@@ -1,7 +1,7 @@
 #include <RcppArmadillo.h>
 #include <boost/assign/list_of.hpp>
 
-#include "assert.hpp"
+#include <boost/assert.hpp>
 #include "cov_funcs.hpp"
 #include "cov_funcs_gpu.hpp"
 
@@ -50,8 +50,8 @@ int valid_nparams(std::string func_r)
 
 template<> arma::mat cov_func<nugget_cov>(arma::mat const& d, arma::vec const& params)
 {
-    RT_ASSERT(params.n_elem == 1, "Nugget cov - requires 1 parameter.");
-    RT_ASSERT(params[0] >= 0,     "Nugget cov - requires params[0] (tauSq) >= 0.");
+    BOOST_ASSERT_MSG(params.n_elem == 1, "Nugget cov - requires 1 parameter.");
+    BOOST_ASSERT_MSG(params[0] >= 0,     "Nugget cov - requires params[0] (tauSq) >= 0.");
 
     double tauSq = params[0];
     arma::mat res;
@@ -68,8 +68,8 @@ template<> arma::mat cov_func<nugget_cov>(arma::mat const& d, arma::vec const& p
 
 template<> arma::mat cov_func<const_cov>(arma::mat const& d, arma::vec const& params)
 {
-    RT_ASSERT(params.n_elem == 1, "Constant cov - requires 1 parameter.");
-    RT_ASSERT(params[0] >= 0,     "Constant cov - requires params[0] (sigmaSq) >= 0.");
+    BOOST_ASSERT_MSG(params.n_elem == 1, "Constant cov - requires 1 parameter.");
+    BOOST_ASSERT_MSG(params[0] >= 0,     "Constant cov - requires params[0] (sigmaSq) >= 0.");
 
     arma::mat res(d.n_rows, d.n_cols);
     res.fill(params[0]);
@@ -79,9 +79,9 @@ template<> arma::mat cov_func<const_cov>(arma::mat const& d, arma::vec const& pa
 
 template<> arma::mat cov_func<exp_cov>(arma::mat const& d, arma::vec const& params)
 {
-    RT_ASSERT(params.n_elem == 2, "Exponential cov - requires 2 parameters.");
-    RT_ASSERT(params[0] >= 0,     "Exponential cov - requires params[0] (sigmaSq) >= 0.");
-    RT_ASSERT(params[1] >= 0,     "Exponential cov - requires params[1] (phi) >= 0.");
+    BOOST_ASSERT_MSG(params.n_elem == 2, "Exponential cov - requires 2 parameters.");
+    BOOST_ASSERT_MSG(params[0] >= 0,     "Exponential cov - requires params[0] (sigmaSq) >= 0.");
+    BOOST_ASSERT_MSG(params[1] >= 0,     "Exponential cov - requires params[1] (phi) >= 0.");
 
     double sigmaSq = params[0];
     double phi = params[1];
@@ -91,9 +91,9 @@ template<> arma::mat cov_func<exp_cov>(arma::mat const& d, arma::vec const& para
 
 template<> arma::mat cov_func<gauss_cov>(arma::mat const& d, arma::vec const& params)
 {
-    RT_ASSERT(params.n_elem == 2, "Gaussian cov - requires 2 parameters.");
-    RT_ASSERT(params[0] >= 0,     "Gaussian cov - requires params[0] (sigmaSq) >= 0.");
-    RT_ASSERT(params[1] >= 0,     "Gaussian cov - requires params[1] (phi) >= 0.");
+    BOOST_ASSERT_MSG(params.n_elem == 2, "Gaussian cov - requires 2 parameters.");
+    BOOST_ASSERT_MSG(params[0] >= 0,     "Gaussian cov - requires params[0] (sigmaSq) >= 0.");
+    BOOST_ASSERT_MSG(params[1] >= 0,     "Gaussian cov - requires params[1] (phi) >= 0.");
 
     double sigmaSq = params[0];
     double phi = params[1];
@@ -103,10 +103,10 @@ template<> arma::mat cov_func<gauss_cov>(arma::mat const& d, arma::vec const& pa
 
 template<> arma::mat cov_func<powexp_cov>(arma::mat const& d, arma::vec const& params)
 {
-    RT_ASSERT(params.n_elem != 3, "Powered exponential cov - requires 3 parameters.");
-    RT_ASSERT(params[0] >= 0,     "Powered exponential cov - requires params[0] (sigmaSq) >= 0.");
-    RT_ASSERT(params[1] >= 0,     "Powered exponential cov - requires params[1] (phi) >= 0.");
-    RT_ASSERT(params[2] >= 0 && params[2] <= 2, "Powered exponential cov - requires 0 <= params[1] (nu) <= 2.");
+    BOOST_ASSERT_MSG(params.n_elem != 3, "Powered exponential cov - requires 3 parameters.");
+    BOOST_ASSERT_MSG(params[0] >= 0,     "Powered exponential cov - requires params[0] (sigmaSq) >= 0.");
+    BOOST_ASSERT_MSG(params[1] >= 0,     "Powered exponential cov - requires params[1] (phi) >= 0.");
+    BOOST_ASSERT_MSG(params[2] >= 0 && params[2] <= 2, "Powered exponential cov - requires 0 <= params[1] (nu) <= 2.");
 
     double sigmaSq = params[0];
     double phi     = params[1];
@@ -117,9 +117,9 @@ template<> arma::mat cov_func<powexp_cov>(arma::mat const& d, arma::vec const& p
 
 template<> arma::mat cov_func<sphere_cov>(arma::mat const& d, arma::vec const& params)
 {
-    RT_ASSERT(params.n_elem == 2, "Spherical cov - requires 2 parameters.");
-    RT_ASSERT(params[0] >= 0,     "Spherical cov - requires params[0] (sigmaSq) >= 0.");
-    RT_ASSERT(params[1] >= 0,     "Spherical cov - requires params[1] (phi) >= 0.");
+    BOOST_ASSERT_MSG(params.n_elem == 2, "Spherical cov - requires 2 parameters.");
+    BOOST_ASSERT_MSG(params[0] >= 0,     "Spherical cov - requires params[0] (sigmaSq) >= 0.");
+    BOOST_ASSERT_MSG(params[1] >= 0,     "Spherical cov - requires params[1] (phi) >= 0.");
 
     double sigmaSq = params(0);
     double phi = params(1);
@@ -150,10 +150,10 @@ template<> arma::mat cov_func<sphere_cov>(arma::mat const& d, arma::vec const& p
 
 template<> arma::mat cov_func<matern_cov>(arma::mat const& d, arma::vec const& params)
 {
-    RT_ASSERT(params.n_elem == 3, "Matern cov - requires 3 parameters.");
-    RT_ASSERT(params[0] >= 0,     "Spherical cov - requires params[0] (sigmaSq) >= 0.");
-    RT_ASSERT(params[1] >= 0,     "Spherical cov - requires params[1] (phi) >= 0.");
-    RT_ASSERT(params[2] >= 0,     "Spherical cov - requires params[1] (nu) >= 0.");
+    BOOST_ASSERT_MSG(params.n_elem == 3, "Matern cov - requires 3 parameters.");
+    BOOST_ASSERT_MSG(params[0] >= 0,     "Spherical cov - requires params[0] (sigmaSq) >= 0.");
+    BOOST_ASSERT_MSG(params[1] >= 0,     "Spherical cov - requires params[1] (phi) >= 0.");
+    BOOST_ASSERT_MSG(params[2] >= 0,     "Spherical cov - requires params[1] (nu) >= 0.");
 
     double sigmaSq = params(0);
     double phi = params(1);
@@ -180,10 +180,10 @@ template<> arma::mat cov_func<matern_cov>(arma::mat const& d, arma::vec const& p
 
 template<> arma::mat cov_func<rq_cov>(arma::mat const& d, arma::vec const& params)
 {
-    RT_ASSERT(params.n_elem == 3, "Rational quadratic cov - requires 3 parameters.");
-    RT_ASSERT(params[0] >= 0,     "Rational quadratic cov - requires params[0] (sigmaSq) >= 0.");
-    RT_ASSERT(params[1] >= 0,     "Rational quadratic cov - requires params[1] (phi) > 0.");
-    RT_ASSERT(params[2] >  0,     "Rational quadratic cov - requires params[1] (alpha) >= 0.");
+    BOOST_ASSERT_MSG(params.n_elem == 3, "Rational quadratic cov - requires 3 parameters.");
+    BOOST_ASSERT_MSG(params[0] >= 0,     "Rational quadratic cov - requires params[0] (sigmaSq) >= 0.");
+    BOOST_ASSERT_MSG(params[1] >= 0,     "Rational quadratic cov - requires params[1] (phi) > 0.");
+    BOOST_ASSERT_MSG(params[2] >  0,     "Rational quadratic cov - requires params[1] (alpha) >= 0.");
 
 
     double sigmaSq = params(0);
@@ -195,10 +195,10 @@ template<> arma::mat cov_func<rq_cov>(arma::mat const& d, arma::vec const& param
 
 template<> arma::mat cov_func<periodic_cov>(arma::mat const& d, arma::vec const& params)
 {
-    RT_ASSERT(params.n_elem == 3, "Periodic cov - requires 3 parameters.");
-    RT_ASSERT(params[0] >= 0,     "Periodic cov - requires params[0] (sigmaSq) >= 0.");
-    RT_ASSERT(params[1] >= 0,     "Periodic cov - requires params[1] (phi) >= 0.");
-    RT_ASSERT(params[2] >  0,     "Periodic cov - requires params[1] (gamma) > 0.");
+    BOOST_ASSERT_MSG(params.n_elem == 3, "Periodic cov - requires 3 parameters.");
+    BOOST_ASSERT_MSG(params[0] >= 0,     "Periodic cov - requires params[0] (sigmaSq) >= 0.");
+    BOOST_ASSERT_MSG(params[1] >= 0,     "Periodic cov - requires params[1] (phi) >= 0.");
+    BOOST_ASSERT_MSG(params[2] >  0,     "Periodic cov - requires params[1] (gamma) > 0.");
 
 
     double sigmaSq = params(0);
@@ -210,11 +210,11 @@ template<> arma::mat cov_func<periodic_cov>(arma::mat const& d, arma::vec const&
 
 template<> arma::mat cov_func<periodic_exp_cov>(arma::mat const& d, arma::vec const& params)
 {
-    RT_ASSERT(params.n_elem == 4, "Periodic cov - requires 3 parameters.");
-    RT_ASSERT(params[0] >= 0,     "Periodic cov - requires params[0] (sigmaSq) >= 0.");
-    RT_ASSERT(params[1] >= 0,     "Periodic cov - requires params[1] (phi1) >= 0.");
-    RT_ASSERT(params[2] >  0,     "Periodic cov - requires params[2] (gamma) > 0.");
-    RT_ASSERT(params[3] >= 0,     "Periodic cov - requires params[3] (phi2) >= 0.");
+    BOOST_ASSERT_MSG(params.n_elem == 4, "Periodic cov - requires 3 parameters.");
+    BOOST_ASSERT_MSG(params[0] >= 0,     "Periodic cov - requires params[0] (sigmaSq) >= 0.");
+    BOOST_ASSERT_MSG(params[1] >= 0,     "Periodic cov - requires params[1] (phi1) >= 0.");
+    BOOST_ASSERT_MSG(params[2] >  0,     "Periodic cov - requires params[2] (gamma) > 0.");
+    BOOST_ASSERT_MSG(params[3] >= 0,     "Periodic cov - requires params[3] (phi2) >= 0.");
 
     double sigmaSq = params(0);
     double phi1 = params(1);
@@ -239,7 +239,7 @@ arma::mat cov_func(int type, arma::mat const& d, arma::vec const& params)
     else if (type == periodic_cov)     return cov_func<periodic_cov>(d,params);
     else if (type == periodic_exp_cov) return cov_func<periodic_exp_cov>(d,params);
     else if (type == noop)             return arma::zeros<arma::mat>(d.n_rows, d.n_cols);
-    else    {RT_ASSERT(false, "Unknown covariance function.");}
+    else    {BOOST_ASSERT_MSG(false, "Unknown covariance function.");}
 
     return arma::mat();
 }
@@ -248,7 +248,7 @@ arma::mat cov_func(int type, arma::mat const& d, arma::vec const& params)
 
 void cov_func_gpu(int type, double const* d, double* cov, int n, int m, int n_threads, arma::vec const& p)
 {
-    RT_ASSERT(cov_func_nparams::value(type) == p.n_elem, "Incorrect number of parameters.");
+    BOOST_ASSERT_MSG(cov_func_nparams::value(type) == p.n_elem, "Incorrect number of parameters.");
 
     if      (type == nugget_cov)       nugget_cov_gpu(d, cov, n, m, p(0), n_threads);
     else if (type == const_cov)        constant_cov_gpu(d, cov, n, m, p(0), n_threads);
@@ -260,15 +260,15 @@ void cov_func_gpu(int type, double const* d, double* cov, int n, int m, int n_th
     else if (type == periodic_cov)     periodic_cov_gpu(d, cov, n, m, p(0), p(1), p(2), n_threads);
     else if (type == periodic_exp_cov) exp_periodic_cov_gpu(d, cov, n, m, p(0), p(1), p(2), p(3), n_threads);
     else if (type == noop)             {/* NOOP */}
-    else if (type == matern_cov)       {RT_ASSERT(false, "Matern is currently unsupported on the GPU.");}
-    else                               {RT_ASSERT(false, "Unknown covariance function.");}
+    else if (type == matern_cov)       {BOOST_ASSERT_MSG(false, "Matern is currently unsupported on the GPU.");}
+    else                               {BOOST_ASSERT_MSG(false, "Unknown covariance function.");}
 }
 
 #else 
 
 void cov_func_gpu(int type, double const* d, double* cov, int n, int m, int n_threads, arma::vec const& p)
 {
-    RT_ASSERT(cov_func_nparams::value(type) == p.n_elem, "Incorrect number of parameters.");
+    BOOST_ASSERT_MSG(cov_func_nparams::value(type) == p.n_elem, "Incorrect number of parameters.");
 
     arma::mat res = cov_func(type, arma::mat(d, n, m), p);
 

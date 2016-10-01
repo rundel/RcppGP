@@ -2,7 +2,7 @@
 
 #include <boost/timer/timer.hpp>
 
-#include "assert.hpp"
+#include <boost/assert.hpp>
 #include "cov_model.hpp"
 #include "cov_funcs.hpp"
 //#include "distributions.hpp"
@@ -60,7 +60,7 @@ cov_model::cov_model(Rcpp::List opts)
 
 arma::mat cov_model::calc_cov(arma::mat const& d, arma::vec const& params) const
 {
-    RT_ASSERT(nparams == params.n_elem, "Number of given parameters does not match the number expected.");
+    BOOST_ASSERT_MSG(nparams == params.n_elem, "Number of given parameters does not match the number expected.");
 
     arma::mat cov = arma::zeros<arma::mat>(d.n_rows, d.n_cols);
 
@@ -78,7 +78,7 @@ arma::mat cov_model::calc_cov(arma::mat const& d, arma::vec const& params) const
 
 gpu_mat cov_model::calc_cov(gpu_mat const& d, arma::vec const& params) const
 {
-    RT_ASSERT(nparams == params.n_elem, "Number of given parameters does not match the number expected.");
+    BOOST_ASSERT_MSG(nparams == params.n_elem, "Number of given parameters does not match the number expected.");
 
     int m = d.get_n_rows();
     int n = d.get_n_cols();

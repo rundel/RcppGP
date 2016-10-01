@@ -1,6 +1,6 @@
 #include <RcppArmadillo.h>
 
-#include "assert.hpp"
+#include <boost/assert.hpp>
 #include "low_rank.hpp"
 #include "gpu_mat.hpp"
 #include "gpu_mat_op.hpp"
@@ -12,7 +12,7 @@ Rcpp::List calc_low_rank(arma::mat cov, int rank,
                          int over_samp = 0, int qr_iter = 2,
                          bool gpu = false)
 {
-    RT_ASSERT(cov.n_rows==cov.n_cols,"Cov matrix must be symmetric");
+    BOOST_ASSERT_MSG(cov.n_rows==cov.n_cols,"Cov matrix must be symmetric");
 
     arma::mat U;
     arma::vec C;
@@ -53,7 +53,7 @@ Rcpp::List calc_inv_cov(Rcpp::List model, arma::mat d, arma::vec p, arma::vec nu
                         bool gpu = false, bool low_rank = false, bool pred_proc = false,
                         bool mod = false)
 {
-    RT_ASSERT(d.n_rows==d.n_cols,"Cov matrix must be symmetric");
+    BOOST_ASSERT_MSG(d.n_rows==d.n_cols,"Cov matrix must be symmetric");
 
     arma::wall_clock t;
     double wt;
@@ -111,7 +111,7 @@ Rcpp::List calc_low_rank_cov(Rcpp::List model, arma::mat d, arma::vec p,
                              int rank, int over_samp = 5, int qr_iter = 2,
                              bool gpu = false)
 {
-    RT_ASSERT(d.n_rows==d.n_cols,"Cov matrix must be symmetric");
+    BOOST_ASSERT_MSG(d.n_rows==d.n_cols,"Cov matrix must be symmetric");
 
     cov_model m(model);
 

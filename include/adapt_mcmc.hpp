@@ -67,7 +67,7 @@ public:
 
     void update(int s, arma::vec alpha)
     {
-        RT_ASSERT(alpha.n_elem == n, "Length mismatch with alpha and tuning.");
+        BOOST_ASSERT_MSG(alpha.n_elem == n, "Length mismatch with alpha and tuning.");
 
         if(s < n_adapt)
         {

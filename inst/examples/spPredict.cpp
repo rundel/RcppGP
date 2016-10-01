@@ -2,7 +2,7 @@
 
 #include "spPredict.hpp"
 
-#include "assert.hpp"
+#include <boost/assert.hpp>
 #include "report.hpp"
 #include "cov_model.hpp"
 
@@ -36,11 +36,11 @@ BEGIN_RCPP
     arma::mat theta = Rcpp::as<arma::mat>(obj["theta"]);
     
     int n_samples = beta.n_cols;
-    RT_ASSERT(n_samples == theta.n_cols,  "Inconsistent number of samples between beta and theta.");
+    BOOST_ASSERT_MSG(n_samples == theta.n_cols,  "Inconsistent number of samples between beta and theta.");
 
 
     arma::mat pred_X = Rcpp::as<arma::mat>(pred_X_r);
-    RT_ASSERT(p == pred_X.n_cols,  "Inconsistent number of predictors in pred X.");
+    BOOST_ASSERT_MSG(p == pred_X.n_cols,  "Inconsistent number of predictors in pred X.");
     int q = pred_X.n_rows;
     
     cov_model cm(Rcpp::as<Rcpp::List>(obj["cov_model"]));
@@ -59,8 +59,8 @@ BEGIN_RCPP
         arma::mat obs_D  = Rcpp::as<arma::mat>(obj["coords_D"]);
         arma::mat pred_D = Rcpp::as<arma::mat>(pred_D_r);
         
-        RT_ASSERT(n_samples == w.n_cols, "Inconsistent number of samples between beta and w.");
-        RT_ASSERT(q == pred_D.n_rows, "Inconsistent number of prediction locations.");
+        BOOST_ASSERT_MSG(n_samples == w.n_cols, "Inconsistent number of samples between beta and w.");
+        BOOST_ASSERT_MSG(q == pred_D.n_rows, "Inconsistent number of prediction locations.");
 
         for (int s = 0; s < n_samples; s++) {
             
@@ -99,7 +99,7 @@ BEGIN_RCPP
         arma::mat w_star  = Rcpp::as<arma::mat>(obj["w_star"]);
         arma::mat knots_D = Rcpp::as<arma::mat>(obj["knots_D"]);
 
-        RT_ASSERT(n_samples == w_star.n_cols, "Inconsistent number of samples between beta and w_star.");
+        BOOST_ASSERT_MSG(n_samples == w_star.n_cols, "Inconsistent number of samples between beta and w_star.");
 
         for (int s = 0; s < n_samples; s++)
         {    
